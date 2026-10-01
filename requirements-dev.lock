@@ -1,0 +1,23 @@
+# Development dependencies (tests) for PopClaw Ranger Map.
+# Includes everything in requirements.lock plus the test toolchain.
+# Installed with: python -m pip install -r requirements-dev.lock
+anyio==4.15.1
+certifi==2026.7.22
+cffi==2.1.1
+click==8.5.0
+cryptography==46.0.5
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.19
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+protobuf==6.33.6
+pycparser==3.0
+PyNaCl==1.6.0
+Pygments==2.21.0
+pytest==9.1.1
+starlette==1.6.0
+typing_extensions==4.16.0
+uvicorn==0.52.4

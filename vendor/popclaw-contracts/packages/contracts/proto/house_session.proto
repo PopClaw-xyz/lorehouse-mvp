@@ -1,0 +1,259 @@
+syntax = "proto3";
+package popclaw.housesession;
+
+// Authenticated, non-broadcast per-house session control. Requests and ACKs
+// never enter public event logs or masquerade as world intents.
+// Request signature: Ed25519(identity_sk,
+// "POPCLAW_HOUSE_SESSION_REQUEST_V1" || canonical_bytes(core)).
+// ACK signature: Ed25519(house_session_sk,
+// "POPCLAW_HOUSE_SESSION_ACK_V1" || canonical_bytes(core)).
+// Domain prefixes isolate control signatures from events and other versions.
+// Cores contain no maps or proto3 optional fields. Omit implicit defaults
+// (0, empty string/bytes, false); encoding explicit defaults breaks byte parity.
+// Unknown fields are ignored when decoding these control cores.
+
+// Control operation. Reject OPERATION_UNSPECIFIED; never infer a missing operation.
+enum Operation {
+  OPERATION_UNSPECIFIED = 0;
+
+  // Start a leased session using compare-and-set. Within one installation, equal
+  // op_seq reuses the current generation (ALREADY_ENTERED, unchanged fence); higher
+  // op_seq closes the old generation, increments the fence and creates a new session;
+  // lower op_seq is STALE_OPERATION. A valid lease held by another installation is
+  // EXECUTOR_BUSY. A late old leave never closes the new generation.
+  ENTER = 1;
+
+  // Extend the current session lease; requires the current session and never creates
+  // a generation.
+  RENEW = 2;
+
+  // Persist the disabled-through watermark for this installation and close matching
+  // sessions through op_seq.
+  LEAVE = 3;
+
+  // Read an authenticated session snapshot; anonymous probing is forbidden.
+  STATUS = 4;
+
+  // Restricted fixture action, idempotent by action_id. At commit, validate session,
+  // fence and lease and serialize with leave. This carries no application action
+  // vocabulary.
+  ACTION = 5;
+}
+
+// Session-state outcome. ErrorCode explains only REJECTED outcomes.
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+
+  // New non-reusable session_id and increased fence.
+  ENTERED = 1;
+
+  // Same installation and entered_op_seq: reuse the generation and refresh its lease.
+  // A higher op_seq returns ENTERED.
+  ALREADY_ENTERED = 2;
+
+  // Lease extended.
+  RENEWED = 3;
+
+  // Session closed, or a rejecting tombstone recorded for an enter not yet observed.
+  CLOSED = 4;
+
+  // Target session or operation range was already closed; no new effects.
+  ALREADY_CLOSED = 5;
+
+  // Late leave recorded without affecting a session created by a newer enter.
+  SUPERSEDED = 6;
+
+  // Signed rejection. Verify the signature and request binding before accepting it as
+  // server evidence.
+  REJECTED = 7;
+
+  // Authenticated session snapshot in status.
+  REPORTED = 8;
+
+  // Fixture action committed; identical retries return the same result.
+  COMMITTED = 9;
+}
+
+// Codes 1-10 are server rejection codes. Codes 11-12 are client-local failures and
+// never server ACK codes.
+enum ErrorCode {
+  ERROR_UNSPECIFIED = 0;
+
+  // Unknown house or invalid canonical origin. Fail closed; never fall back to a
+  // default house.
+  INVALID_HOUSE = 1;
+
+  // Manifest does not advertise house_session. Legacy logout still disables locally
+  // immediately and reports remote unsupported.
+  HOUSE_LIFECYCLE_UNSUPPORTED = 2;
+
+  // The house has disabled this identity and rejects enter.
+  HOUSE_DISABLED = 3;
+
+  // Another installation holds the lease for this house and identity; do not preempt
+  // it.
+  EXECUTOR_BUSY = 4;
+
+  // Operation is below a known watermark or covered by leave. Settle idempotently or
+  // reject; never execute it.
+  STALE_OPERATION = 5;
+
+  // Session belongs to a superseded generation; fence mismatch.
+  SESSION_FENCED = 6;
+
+  // Lease expired. Renew and action require a new explicit enter.
+  LEASE_EXPIRED = 7;
+
+  // Invalid signature, identity/key mismatch, time window or nonce.
+  AUTH_INVALID = 8;
+
+  // house_origin differs from the server canonical origin; prevents cross-house
+  // replay.
+  AUDIENCE_MISMATCH = 9;
+
+  // Same request_id with different semantic contents; the original result remains
+  // queryable.
+  IDEMPOTENCY_CONFLICT = 10;
+
+  // Client-local persistence failed. The in-memory gate is closed, but disabled state
+  // across restart is not guaranteed; do not report success.
+  PERSISTENCE_FAILED = 11;
+
+  // Client-local unknown write outcome. HTTP abort does not revoke server execution;
+  // query by the original action_id instead of creating a new action.
+  ACTION_RESULT_UNKNOWN = 12;
+}
+
+// Canonical signed request core. See the file-level encoding rules.
+message RequestCore {
+  Operation operation = 1;
+
+  // Requester identity: base58 Ed25519 public key, matching signer_pubkey.
+  string popclaw_id = 2;
+
+  // Random non-secret installation UUID. Compatible processes sharing a data root
+  // share this ID; machines use distinct IDs. Watermarks and idempotency are tracked
+  // per installation.
+  string installation_id = 3;
+
+  // Strictly increasing per (identity, house), allocated in a local transaction.
+  // leave(N) forbids every enter of this installation with op_seq <= N.
+  uint64 op_seq = 4;
+
+  // Idempotency UUID. Retries may refresh times and nonce, but preserve this ID and
+  // semantic operation contents.
+  string request_id = 5;
+
+  // Canonical target origin, used for both routing and audience validation.
+  string house_origin = 6;
+
+  // UTC epoch seconds. Out-of-window expiry is AUTH_INVALID. Retries refresh times
+  // and nonce and re-sign without changing request_id.
+  uint64 issued_at = 7;
+  uint64 expires_at = 8;
+
+  // Unique per signing attempt, separate from request_id; retries use fresh nonces.
+  string nonce = 9;
+
+  // Expected house revision for enter compare-and-set; zero means unknown. Mismatch
+  // must never silently overwrite a newer generation.
+  uint64 expected_house_revision = 10;
+
+  // Target for renew/leave/status; empty for enter, which creates a generation.
+  string target_session_id = 11;
+
+  // ACTION only: client-defined idempotency key, settled once.
+  string action_id = 12;
+
+  // ACTION only: UTC epoch deadline. Expired actions are STALE_OPERATION and are
+  // never backfilled.
+  uint64 action_expires_at = 13;
+}
+
+// Protobuf binary request body for POST /v1/house-session.
+message HouseSessionRequest {
+  RequestCore core = 1;
+
+  // Ed25519 signature over the applicable domain prefix and canonical core bytes.
+  bytes signature = 2;
+
+  // Raw 32-byte Ed25519 key. Requests must match core.popclaw_id; ACKs must match the
+  // pinned manifest.house_session.ack_pubkey.
+  bytes signer_pubkey = 3;
+}
+
+// Current session snapshot, attached to control acknowledgements.
+message SessionInfo {
+
+  // Server-generated non-secret ID; never reused or revived after leave.
+  string session_id = 1;
+
+  // Monotonic session-generation fence, checked at action commit.
+  uint64 house_revision = 2;
+
+  // Lease deadline in server-clock UTC epoch seconds.
+  uint64 lease_expires_at = 3;
+
+  // Installation holding this session.
+  string installation_id = 4;
+
+  // op_seq of the enter that created this session.
+  uint64 entered_op_seq = 5;
+}
+
+// Canonical signed acknowledgement core. Match origin, actor, installation, request_id,
+// op_seq and operation to the original request.
+message AckCore {
+
+  string house_origin = 1;
+  // Original requester identity. This is not the House ACK signer key.
+  string popclaw_id = 2;
+
+  // Random non-secret installation UUID. Compatible processes sharing a data root
+  // share this ID; machines use distinct IDs. Watermarks and idempotency are tracked
+  // per installation.
+  string installation_id = 3;
+  string request_id = 4;
+  uint64 op_seq = 5;
+  Operation operation = 6;
+  Outcome outcome = 7;
+
+  // Set only for REJECTED; omit the default otherwise.
+  ErrorCode error_code = 8;
+
+  // Server fence after the decision.
+  uint64 house_revision = 9;
+
+  // Empty when no active session is associated with the acknowledgement.
+  string session_id = 10;
+  bool session_active = 11;
+  uint64 lease_expires_at = 12;
+
+  // Server transaction commit time, UTC epoch seconds. This proves commit, not merely
+  // acceptance.
+  uint64 server_committed_at = 13;
+
+  // Session snapshot for STATUS.
+  SessionInfo status = 14;
+
+  // Diagnostic text only; clients must not parse it for decisions.
+  string detail = 15;
+
+  // Optional short-lived house-signed v2 inbox token, bound to canonical audience,
+  // session and revision; invalid after leave/revocation. Empty permits the legacy
+  // self-signed token path.
+  string inbox_read_token = 16;
+}
+
+// Response for POST /v1/house-session. Every handled outcome, including rejection, is
+// signed. HTTP 200, SSE status and lease expiry are not leave ACKs; settlement requires
+// signature verification, request binding and a valid outcome.
+message HouseSessionAck {
+  AckCore core = 1;
+  // Ed25519 signature over the applicable domain prefix and canonical core bytes.
+  bytes signature = 2;
+
+  // Raw 32-byte Ed25519 key. Requests must match core.popclaw_id; ACKs must match the
+  // pinned manifest.house_session.ack_pubkey.
+  bytes signer_pubkey = 3;
+}

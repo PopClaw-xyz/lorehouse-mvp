@@ -1,0 +1,40 @@
+syntax = "proto3";
+package popclaw.identity;
+
+// Role of an ActorInfo. The baseline does not assign an active actor role.
+enum Role {
+  RANGER = 0;
+  HOST = 1;
+}
+
+// Canonical identity for all actors on the network.
+// popclaw_id:   Base58(Ed25519 pubkey). Equivalent to did:key:z6Mk...
+// nickname:     UTF-8 display name, 1..32 chars.
+// supersedes:   Identity migration hint: prior popclaw_id. Unset in the baseline.
+// device_id:    Device subkey fingerprint. Unset in the baseline.
+// role:         Role tag. Unset in the baseline.
+// Sigil (8-char Crockford base32 fingerprint) is derived from popclaw_id at the display
+// layer.
+// It is intentionally NOT a proto field.
+// Explicit presence is significant: an absent optional field differs from a
+// present field with its default value in canonical envelope bytes.
+message ActorInfo {
+  string popclaw_id = 1;
+  string nickname = 2;
+  optional string supersedes = 3;
+  optional bytes  device_id = 4;
+  optional Role   role = 5;
+}
+
+// Transport-layer signed wrapper — HTTP body for POST /v1/push.
+// Two-level signing model:
+// - SignedPayload.signature  = Ed25519_sign(master_sk, SignedPayload.payload)
+// - EventEnvelope.signature  = Ed25519_sign(master_sk, canonical_bytes)
+// Both signatures use the same identity keypair in the baseline.
+// The server MUST verify SignedPayload.signature using SignedPayload.signer_pubkey
+// BEFORE decoding the inner EventEnvelope.
+message SignedPayload {
+  bytes payload       = 1;  // Serialized EventEnvelope bytes
+  bytes signature     = 2;  // Ed25519 signature over `payload`
+  bytes signer_pubkey = 3;  // 32-byte raw Ed25519 public key of the request signer
+}

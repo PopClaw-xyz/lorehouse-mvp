@@ -1,0 +1,20 @@
+{
+  "protocol_version": "0.1.0-public-envelope-01.6",
+  "envelope_baseline": "public-envelope-01",
+  "generation": {
+    "protoc": "34.1",
+    "prost_build": "0.13.5",
+    "protobufjs_cli": "1.1.3",
+    "protobufjs": "7.6.6"
+  },
+  "locally_tested": {
+    "node": "25.9.0",
+    "pnpm": "9.12.0",
+    "rust": "1.88.0",
+    "python": "3.9.6",
+    "protobuf_python": "6.33.6",
+    "cryptography": "46.0.5"
+  },
+  "dependency_locks": ["pnpm-lock.yaml", "Cargo.lock", "packages/contracts/python/requirements.txt"],
+  "python_codec": "Fixed FileDescriptorSet dynamic messages; no protoc-version-specific Python gencode"
+}

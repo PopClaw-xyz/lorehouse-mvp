@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "popclaw-ranger-map"
+version = "0.1.0"
+description = "PopClaw Ranger Map - a local LoreHouse reference server: one signed check-in action, a comic world map of rangers' latest traces."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "heiyuneo", email = "heiyu@popclaw.xyz" }]
+maintainers = [{ name = "heiyuneo", email = "heiyu@popclaw.xyz" }]
+dependencies = [
+    "cryptography==46.0.5",
+    "protobuf==6.33.6",
+    "starlette==1.6.0",
+    "uvicorn==0.52.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/PopClaw-xyz/lorehouse-mvp"
+Author = "https://github.com/heiyuneo"
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "httpx==0.28.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ranger_map = ["static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,67 @@
+{
+  "note": "Normative combination examples, not runtime test results. Public log/key/digest values are placeholders requiring real proof before use.",
+  "public_only": {
+    "version": 1,
+    "public_stream": {
+      "endpoint": "/v1/world-stream",
+      "mode": "public-v1",
+      "log_incarnation": "example_log",
+      "initial_public_scopes": [],
+      "envelope_baseline": "public-envelope-01"
+    }
+  },
+  "manual_action": {
+    "version": 1,
+    "actions": {
+      "status_endpoint": "/v1/world-actions/status",
+      "result_authority_pubkey": "11111111111111111111111111111111",
+      "kinds": [
+        "community.book"
+      ],
+      "attachments": []
+    },
+    "guide": {
+      "path": "/v1/guide.md",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revision": "example"
+    }
+  },
+  "manual_action_row": {
+    "kind": "community.book",
+    "schema_version": 1,
+    "transport": "house",
+    "signer": "user",
+    "description": "Request a community meeting appointment. The application decides availability.",
+    "params_schema": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "slot"
+      ],
+      "additionalProperties": false
+    },
+    "result_schema": {
+      "type": "object",
+      "properties": {
+        "booking_ref": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "booking_ref"
+      ],
+      "additionalProperties": false
+    },
+    "result_attachments": {
+      "allowed": [],
+      "required_on_success": []
+    },
+    "consistency": "none"
+  }
+}

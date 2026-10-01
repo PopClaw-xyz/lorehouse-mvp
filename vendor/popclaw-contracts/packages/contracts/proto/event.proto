@@ -1,0 +1,558 @@
+syntax = "proto3";
+package popclaw.event;
+
+import "identity.proto";
+import "invite.proto";
+import "quest.proto";
+import "profile.proto";
+import "world_interaction.proto";
+
+// Recipient targeting for an event.
+// BROADCAST: public, anyone can receive
+// PRIVATE: targeted at specific popclaw_ids
+// GROUP: targeted at a list of popclaw_ids (used by QuestDispatchPayload for assignees)
+// CONDITIONAL: matches a filter expression (future use)
+message Recipient {
+  enum Scope {
+    BROADCAST = 0;
+    PRIVATE = 1;
+    GROUP = 2;
+    CONDITIONAL = 3;
+  }
+  Scope scope = 1;
+  repeated string target_ids = 2;    // Base58 popclaw_ids for PRIVATE/GROUP scopes
+  string filter_criteria = 3;
+}
+
+// Signed world-event container. Session control and relay frames are separate.
+// event_id computation (canonical CID; see the public envelope baseline):
+// 1. Copy EventEnvelope with event_id="" and signature=empty bytes.
+// 2. Encode using the public-envelope-01 canonicalization rules.
+// 3. SHA-256 of serialized bytes.
+// 4. Hex-encode (64 chars).
+message EventEnvelope {
+  // Removed field number; never reuse or reinterpret it.
+  reserved 29;
+  string event_id = 1;
+  popclaw.identity.ActorInfo actor = 2;
+  Recipient target = 3;
+  // origin lore-house; empty = the house you're talking to (single-server default).
+  string lorehouse = 4;
+  uint64 timestamp = 5;
+  bytes signature = 6;
+
+  // Hex CID of the preceding envelope; empty denotes a root. The implicit empty
+  // string is omitted, preserving bytes for envelopes without a predecessor.
+  string prev_event_id = 7;
+
+  oneof body {
+    popclaw.invite.InviteRequest invite_request = 11;
+    popclaw.quest.QuestDispatch quest_dispatch = 12;
+    popclaw.quest.QuestResult quest_result = 13;
+    popclaw.invite.InviteVerified invite_verified = 14;
+    RangerRegistration ranger_registration = 15;
+    WatchDispatch      watch_dispatch      = 16;
+    WatchHeartbeat     watch_heartbeat     = 17;
+    WatchCancel        watch_cancel        = 18;
+    FollowDeclared     follow_declared     = 20;
+    FollowRevoked      follow_revoked      = 21;
+    Reply              reply               = 25;   // public reply attached to a post
+    DirectMessage      direct_message      = 26;   // private 1:1 message
+
+    // popclaw-native append-only voicing event. Thread
+    // relationships emerge from envelope.prev_event_id, not from
+    // body-internal fields. envelope.lorehouse is empty (default) for
+    // native posts.
+    Post               post                = 27;
+
+    // Owner-signed public profile declaration, appended as a broadcast.
+    popclaw.profile.Profile profile = 28;
+
+
+    // Mark and revocation events. Relay public APIs expose aggregate counts; marker
+    // identities remain internal to the relay.
+    Mark               mark                = 30;
+    MarkRevoked        mark_revoked        = 31;
+
+    // Tell the assigned ranger to poll immediately.
+    PollDispatch       poll_dispatch       = 32;
+    // Report the outcome of a single poll.
+    PollReport         poll_report         = 33;
+
+    // Generic house extensions. Existing typed members remain in place; new
+    // house-specific vocabulary uses house_event or intent.
+    HouseEvent         house_event         = 34;
+    IntentPayload      intent              = 35;
+  }
+  reserved 10;
+  reserved "feed";
+}
+
+// A single content unit within a feed.
+message ContentBlock {
+  enum Type {
+    TEXT = 0;
+    IMAGE = 1;
+    VIDEO = 2;
+    LONG_FORM = 3;
+    CODE_SNIPPET = 4;
+    LINK_CARD = 5;
+  }
+  Type block_type = 1;
+  string content = 2;
+  map<string, string> metadata = 3;
+}
+
+message MediaAttachment {
+  enum Kind {
+    IMAGE = 0;
+    VIDEO = 1;
+    GIF   = 2;
+  }
+  // Invariant #1: IMAGE=0 is proto3 default. Callers building an
+  // IMAGE attachment MUST NOT emit `kind` on the wire — prost elides it,
+  // pbjs would emit a zero tag, and the mismatch breaks CID parity across
+  // Rust/TS rangers. Mirrors ContentBlock.TEXT=0 handling.
+  Kind   kind   = 1;
+  string url    = 2;
+  optional int32 width  = 3;
+  optional int32 height = 4;
+}
+
+message MetaStats {
+  int64 likes = 1;
+  int64 shares = 2;
+  int64 comments = 3;
+}
+
+// SSE frame wrapper.
+message DiscoveryFrame {
+  enum FrameType {
+    EVENT = 0;
+    HEARTBEAT = 1;
+  }
+  FrameType frame_type = 1;
+  EventEnvelope event = 2;
+}
+
+// ranger advertises itself + declared platform capabilities.
+message RangerRegistration {
+  repeated string capabilities        = 1;   // e.g. {"x"}
+  int32           availability_score  = 2;   // 0..100
+}
+
+// lore-house tells a ranger to start watching (target, platform).
+message WatchDispatch {
+  string watch_id          = 1;  // UUID, correlates heartbeats + pushes
+  string target_popclaw_id = 2;
+  string platform          = 3;
+  // platform-specific handle for the scraper (e.g. X username).
+  // Resolved by lore-house from verified_profiles.handle. Scrapers call
+  // their remote API with this string, NOT with target_popclaw_id — the
+  // base58 popclaw_id is NOT a Twitter username. Additive field; older
+  // clients that ignore this will still compile but can't actually
+  // scrape — treat empty `handle` as a soft error on the plugin side.
+  string handle            = 4;
+  // The instant this watch starts from, epoch seconds — the ranger must not
+  // fetch anything older. Without it a fresh registry seeds `lastSeenCreatedAt`
+  // at 0, so a newly-verified account gets its whole timeline hauled in (which
+  // the owner ruled against: forward sync only, no back-filling), and every
+  // ranger restart re-hauls everything it already had.
+  // Older lore-houses leave it 0 → the plugin treats that as "from now".
+  // Additive; proto3 default elides on the wire → CID-compatible .
+  int64  since             = 5;
+}
+
+// ranger proves its watch is alive; reports recent hit count.
+message WatchHeartbeat {
+  string watch_id     = 1;
+  int64  active_since = 2;   // seconds since epoch
+  int32  recent_hits  = 3;
+}
+
+// lore-house asks a ranger to stop watching a slice.
+message WatchCancel {
+  string watch_id = 1;
+  string reason   = 2;   // "reassigned" | "target_unverified" | "capability_dropped"
+}
+
+// lore-house tells the assigned ranger to scrape NOW.
+// Correlates with monitor_assignments via watch_id (same as WatchDispatch).
+message PollDispatch {
+  string watch_id          = 1;
+  string target_popclaw_id = 2;
+  string platform          = 3;
+  string handle            = 4;
+  // Seconds since epoch of the newest post lore-house has seen (0 = unknown).
+  // The ranger scrapes content newer than this.
+  int64  since             = 5;
+}
+
+// ranger reports the outcome class of one poll so the
+// scheduler can update the rate-adaptive state (spec §4.2). One report per
+// PollDispatch. Mirror posts still arrive separately as Post+Origin pushes.
+message PollReport {
+  enum Result {
+    // proto3 default = 0. Emitters MUST NOT put an explicit 0 on the wire
+    // (prost elides, pbjs would emit a zero tag — breaks CID parity; same
+    // rule as MediaAttachment.Kind above).
+    POLL_EMPTY  = 0;
+    POLL_HIT    = 1;
+    POLL_FAILED = 2;
+  }
+  string watch_id       = 1;
+  Result result         = 2;
+  // Seconds since epoch of the newest post found; only meaningful for HIT.
+  int64  newest_post_at = 3;
+  // New posts found this poll; only meaningful for HIT.
+  int32  new_post_count = 4;
+}
+
+// ===========================================================================
+// /world-feed read API (lore-house → OpenClaw plugin).
+// Note: unlike /v1/push and /v1/resolve, this route has no /v1 prefix.
+// Plugin's /popclaw-feed command GETs this snapshot.
+// ===========================================================================
+
+message WorldFeedItem {
+  string platform                  = 1;   // 'x' | 'instagram' | 'tiktok' | 'youtube' | 'popclaw'
+  string platform_post_id          = 2;
+  int64  platform_post_created_at  = 3;   // seconds since epoch
+  string author_popclaw_id         = 4;   // base58-encoded 32-byte key
+  string handle                    = 5;   // from verified_profiles; may be empty
+  string original_url              = 6;   // dead field, always ""; use Origin.url 
+  string text_preview              = 7;   // first 280 chars of first text ContentBlock
+  // when this item is a Reply (instead of a post), the reply_to_*
+  // fields point at the post being replied to. Empty for non-replies.
+  // platform = 'popclaw' marks popclaw-native replies; the original post
+  // can live on any platform (X, Instagram, popclaw, etc.).
+  string reply_to_platform         = 8;
+  string reply_to_post_id          = 9;
+  string reply_to_author_popclaw_id = 10;
+
+  // Popclaw-native quote post projection.
+  // Filled only when envelope.payload.post.blocks contains a LINK_CARD whose
+  // content matches `^https://popclaw\.me/post/[0-9a-f]{64}$`. The first such
+  // LINK_CARD wins (deterministic find_map order). All four fields are empty
+  // for root posts, pure replies, and non-popclaw items.
+  // allows cross-lore-house references — if the quoted post is not in
+  // this lore-house's posts table, quoted_author_popclaw_id and
+  // quoted_text_preview stay empty while quoted_event_id is still populated.
+  string quoted_event_id           = 11;  // hex 64
+  string quoted_author_popclaw_id  = 12;  // base58, "" if quoted post unknown locally
+  string quoted_author_handle      = 13;  // "" if unverified
+  string quoted_text_preview       = 14;  // ≤280 chars, "" if quoted post not ingested
+
+  // actor_nickname — `envelope.actor.nickname` projected from ingest;
+  // client-side renders as `@<nickname>#<sigil>` (sigil derived from
+  // author_popclaw_id locally from its public key).
+  // quoted_actor_nickname — same field for the quoted post (when this item
+  // is a quote post). Populated by lore-house reverse-lookup on the quoted
+  // post's envelope.
+  string actor_nickname            = 15;
+  string quoted_actor_nickname     = 16;
+
+  // Bake-at-ingest snapshot of actor's verified profiles.
+  // Empty list = actor had no verified profiles at ingest time.
+  repeated VerifiedPlatform actor_verified           = 17;
+  repeated VerifiedPlatform quoted_actor_verified    = 18;
+
+  // Event CID for every projected item, including mirrored posts.
+  string event_id                  = 19;  // hex 64
+  int64  mark_count                = 20;  // Aggregate count; SSE value at emission time
+
+  // origin provenance. Populated for mirror posts (Post.origin is set);
+  // absent (proto3 default nil) for native-born popclaw posts, Feed items, Replies.
+  // Lets the plugin distinguish "show original link" vs "pure popclaw native".
+  Origin origin                    = 21;
+
+  // Complete signed EventEnvelope bytes, authoritative for full text and media.
+  // Projection text is a convenience preview. Relays omit this field above the 256 KB
+  // bound while retaining the preview.
+  bytes  envelope                  = 22;
+  // Bounded identity snapshot for the reply target, without its post body.
+  string reply_to_author_handle    = 23;  // "" if unverified/unknown
+  string reply_to_actor_nickname   = 24;  // "" if unknown (populated later; handle suffices for attribution)
+  // Derived relay reply count outside the signed envelope. Snapshot value; zero in
+  // live-tail frames.
+  int64  reply_count               = 25;
+}
+
+message WorldFeedSnapshot {
+  repeated WorldFeedItem items = 1;
+}
+
+// Public world-stream frame for GET /v1/world-stream. envelope preserves exact signed
+// bytes; kind is the typed snake_case name or HouseEvent.kind. Only
+// post/reply/house_event content kinds carry projection, whose field 22 remains empty.
+// Relay fields are outside the envelope CID.
+message WorldStreamFrame {
+  uint64 seq        = 1;   // Relay log sequence, also used as SSE id
+  bytes  envelope   = 2;   // verbatim signed EventEnvelope bytes
+  string kind       = 3;   // routing label
+  WorldFeedItem projection = 4; // content kinds only; envelope field left empty
+  // Public relay selection labels, not author-signed authorization .
+  repeated string scopes = 5;
+}
+
+// Snapshot of an actor's verified profile at the moment a world_feed_item
+// was projected. Bake-once-at-ingest semantics: future verifies / revokes
+// land in newer events and DO NOT mutate older items.
+message VerifiedPlatform {
+  string platform     = 1;   // "x" / "instagram" / "github" / ...
+  string handle       = 2;   // platform-native handle, no '@', no spaces
+  string profile_url  = 3;   // derived URL, or "" for popclaw-native / unmapped
+  int64  follower_count = 4; // snapshot at verification day. 0 = unknown/uncaptured
+  // platform-native immutable account id (X rest_id / YT channel /
+  // TikTok sec_uid / IG pk); "" if unknown. Proto3 default elides — existing
+  // VerifiedPlatform CIDs unchanged .
+  string account_id   = 5;   // platform-native immutable account id (X rest_id / YT channel / TikTok sec_uid / IG pk); "" if unknown
+}
+
+// Author-signed ordering and scope for ONE relation edge.
+//
+// A per-edge counter rather than a predecessor chain. Not because a chain's
+// sibling test is asymmetric — it is not — but because a counter is comparable
+// on its own: two events can be ordered without the receiver holding anything
+// between them, so the ordinary path never waits on a predecessor it has not
+// seen. Its fork test needs no ancestry either: two devices holding the same
+// key and unaware of each other sign the SAME next seq, so "same edge + same
+// seq + different event_id = fork" is decidable from the two events alone and
+// gives one answer whichever branch lands first.
+//
+// What it is NOT: a causal proof. It records that two events were signed at
+// the same position, not what their authors knew. A retry after a timeout, and
+// two independent recoveries, both need their own rules.
+//
+// Nested message, not three scalars: proto3 gives message fields explicit
+// presence, so `order` being present IS the unambiguous activation marker for
+// ordered mode. Absent elides, so every event signed before this field existed
+// keeps a byte-identical CID: this is an additive superset, not a new baseline.
+//
+// NOTE the compatibility direction, and note that it has two layers, because
+// the wire layer alone is not the guard. WIRE: a decoder that DISCARDS unknown
+// fields loses a signed, non-default `order`, and canonicalization re-encodes
+// from the decoded message, so the CID cannot be restored and verification
+// fails there. A decoder that RETAINS unknown fields may instead re-encode
+// identical bytes and match the CID — so passing the CID check proves nothing
+// about whether that end understands ordering. ADMISSION: an end that has not
+// declared support for ordered relations refuses the event on the version
+// check, whichever way its decoder handled the field. Either path is a
+// rejection, not a silent skip, and both ends that consume an ordered event
+// must support it.
+message RelationOrder {
+  // Strictly increasing per (author, followee, house_key), starting at 1.
+  // 0 is the proto3 default, so inside a PRESENT `order` it cannot be told
+  // apart from unset — an event carrying 0 is illegal new format, refused
+  // rather than downgraded to the legacy rules.
+  //
+  // EFFECTIVE DOMAIN IS 1..=2^63-1, narrower than the wire type. Postgres has
+  // no unsigned 64-bit integer, so a larger value would be stored as a
+  // NEGATIVE number and comparison would run backwards in both directions — a
+  // stale event reading as newer, a current one as stale. Both ends refuse
+  // anything above the bound at admission rather than casting and hoping. This
+  // is a deliberate narrowing, stated here because a silent one is exactly the
+  // failure it prevents; a per-edge counter never legitimately approaches it.
+  //
+  // A crash may skip a number; nothing may reuse one. Enforcing that is the
+  // author-side allocator's job, not this comment's: two devices
+  // signing concurrently still collide, and that collision is detected as a
+  // fork rather than prevented here.
+  uint64 seq = 1;
+
+  // The HouseBinding.house_key this action is scoped to, verbatim. That value
+  // is ALREADY base58 — it is never re-encoded here, so two implementations
+  // cannot disagree about how the namespace is spelled. Required when `order`
+  // is present; this is the relation namespace. Neither origin nor
+  // incarnation belongs here: both change while the key does not.
+  string house_key = 2;
+
+  // Recovery statements only: the event_ids of EVERY conflicting branch this
+  // statement resolves. Empty on an ordinary action — an ordinary successor
+  // must never resolve a fork, because it proves the author saw one branch,
+  // not that they abandoned the other.
+  repeated string resolves = 3;
+}
+
+// Follow declaration. Signed by the follower; ingested by the House into its
+// relation state and delivered over SSE on the personal streams of the two
+// participants. It is never published on a public stream, ordered or not
+// (RELATIONS.md section 8): FollowType.PUBLIC describes the relation's nature,
+// it is not a broadcast lane and confers no public-stream right.
+// PRIVATE-typed FollowDeclared / FollowRevoked are LOCAL-CANONICAL ONLY:
+// they live in declared.jsonl on the originating plugin. Pushing one as
+// PRIVATE through /v1/push must be rejected — private actions go through
+// the separate /private-counter/.../[increment|decrement] endpoint.
+message FollowDeclared {
+  string followee_popclaw_id = 1;
+  enum FollowType { PUBLIC = 0; PRIVATE = 1; }
+  FollowType follow_type = 2;
+  bool taste_subscribed = 3;
+  enum SubscriptionVisibility { SV_PUBLIC = 0; SV_PRIVATE = 1; }
+  SubscriptionVisibility taste_subscription_visibility = 4;
+  RelationOrder order = 5;
+}
+
+message FollowRevoked {
+  string followee_popclaw_id = 1;
+  enum FollowType { PUBLIC = 0; PRIVATE = 1; }
+  FollowType follow_type = 2;
+  RelationOrder order = 3;
+}
+
+// Reference to a specific post on any platform (X, Instagram, popclaw-native).
+// Used by Reply.in_reply_to and optionally by DirectMessage.in_reply_to_post.
+message PostRef {
+  string platform         = 1;
+  string platform_post_id = 2;
+  // Author's popclaw_id when known; empty when the original post is on a
+  // platform like X and the handle hasn't been verified-mapped to a popclaw_id
+  // yet. Replies/DMs to such items are still valid; lore-house queues them.
+  string author_popclaw_id = 3;
+}
+
+// public reply attached to a post. World-feed-visible: any
+// popclaw user (or their agent) reading the world feed can see and score
+// this reply. Reply CANNOT be encrypted because by definition it's public.
+message Reply {
+  // from_popclaw_id and ts duplicate envelope.actor.popclaw_id and
+  // envelope.timestamp; envelope is authoritative.
+  string  from_popclaw_id = 1;
+  PostRef in_reply_to     = 2;   // required: which post is being replied to
+  string  body            = 3;   // public plaintext UTF-8
+  int64   ts              = 4;   // unix seconds
+}
+
+// private 1:1 message. Only the recipient receives it via the
+// per-user inbox SSE stream. When `ciphertext` is set the lore-house cannot
+// read the message at all — it only relays opaque bytes. Encryption is
+// additive (fields 6/7), so plaintext-`body` DMs remain valid forever.
+message DirectMessage {
+  // from_popclaw_id and ts duplicate envelope.actor.popclaw_id and
+  // envelope.timestamp; envelope is authoritative.
+  string  from_popclaw_id   = 1;
+  // Recipient must have a popclaw identity whose public key supports encryption. For "DM a non-popclaw author", the user is steered to use
+  // Reply instead, which is public + queued at lore-house.
+  string  to_popclaw_id     = 2;
+  PostRef in_reply_to_post  = 3;   // optional: a post that triggered this DM
+  // Plaintext UTF-8 body. KEPT FOREVER for backward compatibility
+  // never change an existing field's semantics).
+  // Two ways this field is populated, distinguished by whether `ciphertext`
+  // below is non-empty:
+  // - ciphertext EMPTY  → `body` is the real plaintext message (pre-encryption
+  // DMs, and any client that has not implemented encryption). Old lore-houses
+  // and old clients keep working unchanged.
+  // - ciphertext PRESENT → `body` carries an opaque non-empty PLACEHOLDER
+  // string only (old lore-houses reject an empty body, so it cannot be left
+  // blank). It is NOT the message. Readers MUST ignore it and decrypt
+  // `ciphertext` instead.
+  // This field is NOT reused to carry ciphertext: it is `string`, so prost
+  // rejects non-UTF-8 bytes, and repurposing it would be a breaking semantic
+  // change that would violate the existing field semantics.
+  string  body              = 4;
+  int64   ts                = 5;
+
+  // extension — end-to-end encrypted body (nacl.box:
+  // X25519 ECDH → XSalsa20-Poly1305), sealed to the recipient's X25519 public
+  // key, which is derived directly from their popclaw_id (Ed25519 → curve25519).
+  // Both fields are proto3 `bytes`: when absent OR present-but-empty they elide
+  // on the wire, so every DirectMessage signed before this field existed keeps
+  // byte-identical canonical bytes and an unchanged CID/signature. Pinned by
+  // the direct_message_* vectors in fixtures/test-vectors.json.
+  // Presence rule: ciphertext and nonce are set together or not at all.
+  bytes   ciphertext        = 6;
+  // 24-byte nacl.box nonce. Unique per message; not secret.
+  bytes   nonce             = 7;
+
+  // extension — an image riding inside the DM, sealed in its
+  // OWN nacl.box to the same recipient key.
+  // Why a second box instead of stuffing the image into `ciphertext`: the text
+  // box's plaintext is UTF-8 (dm-crypto seals a string). Changing that to a
+  // structured blob would make every pre-image client render mojibake for a
+  // message it cannot display anyway. With separate fields, an old client
+  // elides what it does not know and shows the
+  // text DM exactly as before — it just does not see the picture. Graceful,
+  // not broken.
+  // Why no plaintext `mime` field: the media type is sealed INSIDE the box
+  // (first line of the plaintext, `<mime>\n<raw bytes>`), so the lore-house
+  // cannot even tell a sticker from a screenshot. Length is still visible —
+  // metadata privacy was never claimed (see the encryption module header).
+  // Presence rule: media_ciphertext and media_nonce are set together or not at
+  // all. Both are proto3 `bytes` → absent/empty elides → every DM signed before
+  // this field existed keeps byte-identical canonical bytes and an unchanged
+  // CID/signature. Pinned by the direct_message_* vectors in test-vectors.json.
+  bytes   media_ciphertext  = 8;
+  // 24-byte nacl.box nonce for `media_ciphertext`. Distinct from `nonce`:
+  // reusing a nonce across two boxes under the same key pair is a classic
+  // XSalsa20 keystream-reuse footgun.
+  bytes   media_nonce       = 9;
+}
+
+// Mark/unmark target is in the payload; envelope.prev_event_id remains dedicated to the
+// thread DAG.
+message Mark {
+  string marked_event_id = 1;   // 64-character hex CID of a feed-visible event
+}
+
+message MarkRevoked {
+  string marked_event_id = 1;
+}
+
+// Mirror provenance present iff this Post mirrors a post the
+// owner made on an external platform. Absent = born-native on popclaw.
+message Origin {
+  string platform    = 1;  // x / instagram / tiktok / youtube
+  string post_id     = 2;  // platform-native stable post id (dedup anchor)
+  string url         = 3;  // canonical source URL (view-original)
+  int64  created_at  = 4;  // source post's publish time (unix seconds; NOT mirror ingest time)
+  string reply_to_id = 5;  // source parent post id if the source post is a reply; else ""
+}
+
+// popclaw-native voicing event. append-only: signed, immutable,
+// irrevocable. Field minimality is intentional — derived data (URL,
+// reply count, distinct participants) live in lore-house projection
+// APIs, not in protocol core.
+// Uses ContentBlock + MediaAttachment (defined above) for its body and
+// media fields. The default-value omission rule applies:
+// MediaAttachment.kind=IMAGE (0) elides on wire.
+// origin present iff this Post mirrors an external-platform
+// post the owner made. Absent = native-born on popclaw. Proto3 default
+// (unset message) elides on the wire — existing Post CIDs unchanged.
+message Post {
+  repeated ContentBlock blocks      = 1;
+  repeated MediaAttachment media    = 2;
+  Origin origin                     = 3;
+}
+
+// House-specific extension payload. body is opaque: its producer encodes it and the
+// envelope signature/CID cover its exact bytes. Generic relays do not parse it. Clients
+// safely skip unknown kinds without discarding neighboring events. The house manifest
+// declares body JSON Schema outside this shared contract.
+
+message HouseEvent {
+  // House-namespaced verb, for example "world.postcard". The manifest layer manages
+  // house slug uniqueness; this package has no vocabulary registry.
+  string kind           = 1;
+  // House-managed body schema version. Omit the implicit zero default; explicit zero
+  // breaks canonical byte parity.
+  uint32 schema_version = 2;
+  // Opaque body bytes. Omit the implicit empty default.
+  bytes  body           = 3;
+  // Public selection labels covered by the envelope signature and CID (A2).
+  repeated string public_scopes = 4;
+}
+
+// Upstream intent addressed to a house. Its manifest declares accepted intent_kind
+// values and params schemas; the house validates params, which this contract treats as
+// opaque bytes.
+message IntentPayload {
+  // Target house slug or base URL, aligned with EventEnvelope.lorehouse.
+  // Context-bound admission applies the stricter origin rules in IntentContext.
+  string lorehouse   = 1;
+  // Action name declared by the house manifest.
+  string intent_kind = 2;
+  // Opaque parameter bytes, conventionally JSON. Omit the implicit empty default.
+  bytes  params      = 3;
+  // Optional by message presence; absence preserves legacy CID bytes (A1).
+  popclaw.world.IntentContext context = 4;
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PopClaw Ranger Map · Every ranger leaves a trace.</title>
+  <meta name="description" content="A comic world map of PopClaw rangers' latest check-ins: one signed footprint at a time.">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <header class="topbar">
+    <picture class="wordmark" aria-label="PopClaw">
+      <source media="(prefers-color-scheme: dark)" srcset="/static/assets/brand/popclaw-large-wordmark-reverse@2x.png">
+      <img src="/static/assets/brand/popclaw-large-wordmark-positive@2x.png" width="187" height="64" alt="PopClaw">
+    </picture>
+    <div class="topbar-mid">
+      <h1>Ranger Map <span class="zh" lang="zh-CN">游侠足迹图</span></h1>
+      <p class="tagline">Every ranger leaves a trace.</p>
+    </div>
+    <div class="topbar-end">
+      <div class="counts" aria-live="polite">
+        <span class="count-rangers"><b id="count-rangers">0</b> rangers</span>
+        <span class="count-footprints"><b id="count-footprints">0</b> footprints</span>
+      </div>
+      <div class="topbar-buttons">
+        <button type="button" id="button-roster" class="chip" aria-expanded="false" aria-controls="drawer-roster">All rangers</button>
+        <button type="button" id="button-help" class="chip" aria-expanded="false" aria-controls="drawer-help">How to check in</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="world" id="world">
+    <div class="map-canvas" id="map-canvas">
+      <picture class="land-picture">
+        <source media="(prefers-color-scheme: dark)" srcset="/static/assets/world-land-dark.svg">
+        <img class="land" src="/static/assets/world-land.svg" alt="" draggable="false">
+      </picture>
+      <svg class="leaders" id="leaders" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="anchors" id="anchors" aria-hidden="true"></div>
+      <div class="markers" id="markers"></div>
+    </div>
+
+    <div class="map-tools" role="group" aria-label="Map controls">
+      <button type="button" id="zoom-in" class="tool" aria-label="Zoom in">+</button>
+      <button type="button" id="zoom-out" class="tool" aria-label="Zoom out">−</button>
+      <button type="button" id="zoom-reset" class="tool" aria-label="Reset view">⌖</button>
+    </div>
+
+    <p class="load-state" id="load-state" role="status"></p>
+
+    <div class="empty-state" id="empty-state" hidden>
+      <div class="empty-art" aria-hidden="true">🧭</div>
+      <p class="empty-title">The world is drawn and waiting.</p>
+      <p>Be the first ranger to leave a trace.</p>
+    </div>
+
+    <div class="error-state" id="error-state" hidden>
+      <p class="error-title">Couldn't load the map.</p>
+      <p class="error-detail" id="error-detail"></p>
+      <button type="button" id="retry" class="chip">Try again</button>
+    </div>
+  </main>
+
+  <footer class="bottombar">
+    <div class="selected" id="selected" aria-live="polite">
+      <p class="selected-hint">Click a ranger on the map to read their latest trace.</p>
+    </div>
+    <button type="button" id="button-trail" class="chip chip-red" aria-expanded="false" aria-controls="drawer-trail" hidden>View trail</button>
+  </footer>
+
+  <section class="drawer drawer-trail" id="drawer-trail" role="region" aria-label="Ranger trail" hidden>
+    <header class="drawer-head">
+      <h2 id="trail-title">Trail</h2>
+      <button type="button" class="chip" data-close-drawer>Close</button>
+    </header>
+    <ol class="trail-list" id="trail-list"></ol>
+    <div class="drawer-foot">
+      <button type="button" id="trail-earlier" class="chip" hidden>Earlier footprints</button>
+    </div>
+  </section>
+
+  <section class="drawer drawer-roster" id="drawer-roster" role="region" aria-label="All rangers" hidden>
+    <header class="drawer-head">
+      <h2>All rangers</h2>
+      <button type="button" class="chip" data-close-drawer>Close</button>
+    </header>
+    <ul class="roster-list" id="roster-list"></ul>
+  </section>
+
+  <section class="drawer drawer-help" id="drawer-help" role="region" aria-label="How to check in" hidden>
+    <header class="drawer-head">
+      <h2>How to leave a trace</h2>
+      <button type="button" class="chip" data-close-drawer>Close</button>
+    </header>
+    <div class="help-body">
+      <p>Check in through your own PopClaw agent. Ask it something like:</p>
+      <blockquote>“I'm in Hangzhou building a little music tool — leave a footprint for me.”</blockquote>
+      <p>Your agent submits one signed <code>rangermap.check_in</code> action with
+         <code>place</code>, <code>latitude</code>, <code>longitude</code> (decimal strings)
+         and a one-line <code>status</code>.</p>
+      <p class="help-example-cities">Example city-centre coordinates: Hangzhou
+         30.27, 120.15 · Berlin 52.52, 13.40 · San Francisco 37.77, −122.42 ·
+         Sydney −33.87, 151.21.</p>
+      <p><strong>Privacy:</strong> the place and status you choose are public and kept
+         in the trail history. Nothing here tracks your real location; you pick the spot.</p>
+      <p class="help-pending">Check-ins arrive through your agent's signed PopClaw wire
+         (session + <code>rangermap.check_in</code> action). The map you are viewing reads
+         this house's live public stream of accepted footprints.</p>
+    </div>
+  </section>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

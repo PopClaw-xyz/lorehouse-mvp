@@ -1,0 +1,74 @@
+# Receipt retention, attachment installation and ACK contract
+
+Normative receipt evidence and installation semantics. No new network ACK endpoint
+is introduced. Runtime implementations must distinguish evidence durability,
+bookkeeping completion and per-attachment installation; one generic pending flag
+cannot represent all three.
+
+## 1. Verification and evidence states
+
+An action result is bounded to 1,048,576 bytes. Save/examine an owned copy of the original SignedActionResult, never a reconstructed object in place of original evidence. Existing canonical signature rules and known message fields are required. Unknown signed fields/versions that cannot be faithfully canonical-verified are unsupported evidence, not verified success; protobuf skipping unknown fields does not prove signature compatibility.
+
+Process in this order:
+
+1. **Envelope authentication**: existing canonical signature under the original request's saved result key; full house/actor/audience/request_id/request_digest/kind/schema_version/capability_revision binding. Wrong binding or signature cannot target a policy for invalidation. Raw bounded diagnostic quarantine may exist but is not a receipt and grants no durable receipt ACK.
+2. **Base validity**: status/code/execution identity, revision and transition rules, terminal immutability, timestamp bounds, result_body/digest and the selected kind's saved result schema. Nonterminal and CANCELLED results cannot carry attachments; zero-revision rejection retains its strict empty-body/attachment exception only. A supported but invalid base is rejected; unavailable schema/codec is unverified/unsupported. Neither settles authority nor advances trusted latest status.
+3. **Attachment contract**: inspect each present known attachment and the declared allowed/required_on_success sets. Record its own validation result plus combined consistency result. A valid signature/base can report the House's business status even when an attachment is invalid/unsupported, but report that condition alongside it; never call the whole action contract satisfied or action-ready. Missing a required-on-success attachment is a contract violation, not a reason to invent an empty attachment.
+4. **Durable receipt**: commit original signed bytes, digest/binding/revision, base result, each attachment validation/install disposition and pending recovery obligations before acknowledging local receipt durability. Preserve terminal/equal-revision conflict checks. Older records may be retained as history but never replace newer trusted state. Same original result replay is idempotent and cannot regress any disposition.
+5. **Base bookkeeping**: settle only the original request's local authority/reservation using the valid terminal base, under existing accounting semantics. Invalid/unsupported attachments do not authorize new work and do not erase a known base terminal fact. This bookkeeping and its completion flag must share the real transaction with each other; if receipt storage uses a preceding transaction it must persist the bookkeeping-pending obligation atomically. No callback no-op can count as successful accounting.
+
+Three distinct local facts must be reportable: authenticated House business status; attachment contract satisfied/invalid/unsupported; installed current action readiness. A successful base is not a promise that all optional application state was installed.
+
+## 2. Eight presence combinations
+
+S=snapshot, U=subscription, P=participation. The table describes **SUCCEEDED** combinations, assuming a valid base, attachments declared allowed, valid size/schema/house/actor bindings, and the selected kind's required_on_success constraints. “Legal” means the shape is possible in some explicitly declared kind; it does not override those constraints. REJECTED is specified after the table and does not require success attachments.
+
+| S U P | Allowed semantics | Cross-binding / installation / readiness |
+| --- | --- | --- |
+| 0 0 0 | Base receipt only; consistency=none | No attachment modules required. No implicit subscription, participation or current snapshot |
+| 1 0 0 | Historical snapshot; consistency=none | Validate state_ref/revision/as_of and saved schema; no participation association inferred from state_ref. The original-authorized-refresh exception below may refresh an already installed context, never create one |
+| 0 1 0 | Subscription-only receipt; consistency=stream | U carries its own participation_id even without P. Install real scope subscription under original authorized selection; no grant or policy fabricated. barrier_id MUST be empty. Publication observation and scope replay remain independent facts |
+| 0 0 1 | Participation without public subscription; consistency=none | Validate original house/actor/kinds/window/revision. Store descriptor; activate only under current explicit local selection/grant and private/unscoped readiness rules. Cannot clear a previously required subscription for this participation |
+| 1 1 0 | Snapshot and subscription; stream or snapshot_barrier | stream: barrier_id empty; S historical, no proven causal pairing. snapshot_barrier: nonempty barrier_id and server-bound exact state_ref/revision required; matched signed observation + scoped replay + authorized refresh needed for currentness. No P grant inferred |
+| 1 0 1 | Snapshot and participation; consistency=none | P supplies possible local association only within this authenticated result. S remains historical except under the original-authorized-refresh rule below. No inferred scope/barrier or replacement of the previously installed context |
+| 0 1 1 | Subscription and participation; consistency=stream | U.participation_id=P.participation_id, same house/actor; barrier_id empty. Descriptor can be stored and subscription installed, but no invented full snapshot readiness. If action requires state-currentness it remains blocked pending a proper refresh |
+| 1 1 1 | All attachments; stream or snapshot_barrier | Equal U/P identity; stream leaves S historical. snapshot_barrier retains complete barrier/observation/replay/refresh requirements. Independently current local owner grant is still necessary; no model scheduling from receipt |
+
+For every row, schema/binding validation is mandatory even if installation is disabled when the validator is supported. A validator not available is recorded unsupported, not silently passed. Out-of-allowlist attachments are contract-invalid even if their shape is recognizable. A valid REJECTED result from **any** consistency kind may omit all three attachments; required_on_success is not applied. For any actually present attachment its allowed/type/identity/privacy checks remain. A partially supplied consistency group on rejection is retained as diagnostic/historical data with installation blocked, not completed by fabrication; it cannot grant authority or currentness. Missing success attachments cannot turn an authentic rejection into unknown. For ACCEPTED/EXECUTING/CANCELLED and zero-revision preadmission rejection, any attachment violates base rules; the table does not legalize it.
+
+The snapshot_barrier provider must bind barrier registration to house/actor/participation_id/state_ref/state_revision/scopes and the complete immutable member set. The current SubscriptionObservation does not directly carry state_ref/revision: its signed barrier identity plus the pinned result authority's registration invariant supplies that association. A client does not infer it from matching timestamps or independently inspect the business database. If this server invariant is not implemented, the kind MUST NOT advertise snapshot_barrier. Keep observation query nonce, descriptor revision and log binding; a mutable observation never mutates a signed terminal result.
+
+Snapshot-only historical storage is independent of the current WorldReadiness participation-keyed implementation. It must not install fake participation ids to reuse that implementation. **Original-authorized-refresh exception:** an original persisted read-state refresh request may already bind an existing participation, installed descriptor digest, log/scopes and captured replay anchor (or the established no-subscription anchor). A matching S-only/S+P result may refresh that existing context only while the original authorization, schema, current generation and all captured proof prerequisites still hold. It cannot derive a participation from state_ref, create U/P, replace the captured anchor with a newer one, or bypass a now-stale subscribed context. Merely purpose=snapshot is not authorization. A same-identity stale descriptor/result cannot roll back installed state. A later result lacking U does not delete an existing subscription or downgrade its requirements; replacement/revocation requires the original explicit monotonic protocol path.
+
+## 3. Per-attachment disposition and installation
+
+Validation states: `valid`, `unsupported`, `invalid`. Installation states: `not_selected`, `pending`, `applied`, `failed`, `blocked`. They are two dimensions, not one success boolean. Absent attachments have no invented state record. `unsupported` stores a stable reason (capability absent/local validator unavailable/version unsupported); invalid retains evidence and a bounded reason. Neither is applied.
+
+| Condition | Durable receipt ACK | Installation disposition / ACK | Effects and retry |
+| --- | --- | --- | --- |
+| Signature/binding/base invalid or unverified | No | No | No policy/authority settlement or effect; diagnostic retention only |
+| Valid base + unsupported/invalid attachment | Yes, after complete evidence/disposition commit | Unsupported/invalid; no install ACK | Known base terminal bookkeeping may complete; dependent action readiness false. No hot retry for permanent unsupported/invalid |
+| Valid attachment not selected by local policy | Yes | valid + not_selected; no install ACK | Preserve for explicit later inspection/selection; do not auto-enable module |
+| Selected, dependency available, install not run yet | Yes | valid + pending; no install ACK | Retry only under original selection and current gate; no base receipt redelivery loop required |
+| Installer commits state and its completion atomically | Yes | valid + applied; install ACK | “Applied” means stored/registered, not caught-up/current/granted |
+| Installer fails or process dies before that commit | Already durable remains Yes | pending or failed, no install ACK | Bounded idempotent retry of the attachment; never rerun successful base accounting or sibling attachments |
+| Dependency unavailable, restore interlock or generation ended | Existing durable fact retained | blocked; no install ACK | No automatic old-generation retry on relogin. Explicit fresh authorization may select data again; cannot revive old request execution |
+| Replay of same signed receipt | Preserve prior ACK | Preserve applied/unsupported/invalid/blocked; do not reset to pending | Supply missing original evidence association only; no repeat external work |
+
+“Receipt ACK” here is the local durable-ingestion completion fact. “Install ACK” is the local per-attachment completion fact. If an existing transport adapter has a network delivery ACK, it may acknowledge durable receipt only after the same evidence+disposition commit and MUST NOT label it installed. No network capability or endpoint is added. Result polling HTTP success remains merely transport success. Unsupported installation need not keep the remote producer retrying a receipt forever.
+
+Authentication/receipt storage can finish via a specifically authorized original-record read after logout; that exception does not run installers, auto-notification or model work. Receipt ACK in that path records local durability, not permission to send another network message. Automatic ingress uses the existing generation gate. Any network ACK/effect must independently satisfy the applicable existing lifecycle permission; this document creates no logout exception for it.
+
+Apply related U/P installation as one dependency group when both present: validate their equality before either can acquire current authority. S can be stored as history independently, but snapshot_barrier currentness needs the full group. A rejected/unsupported U must never leave P active via a no-subscription shortcut. Required groups absent/invalid/unsupported leave the action contract unmet. Independent siblings may remain valid historical data; no deletion or signature truncation.
+
+Publication observations have their own durable verification/consumer states and can be retained even while installation is blocked. They can become readiness evidence only for the exact installed descriptor/nonce/binding/revision, not because the result's old aggregate pending flag cleared. Unknown/missing publication or client scope gaps never become ready from public-lane progress.
+
+## 4. Crash/recovery and compatibility obligations
+
+These are semantic transaction obligations. Each runtime documents the concrete evidence/disposition storage and transaction boundaries before integration.
+
+Before base receipt ACK, one transaction retains exact result and all validation/install/retry dispositions. Before base-accounting ACK, existing original authority settlement and its done state commit together. Before install ACK, durable installed state and its done marker commit together on the actual shared handle. An async receiver change cannot be in a synchronous SQL transaction: persist intent first, apply idempotently with generation checks, then atomically mark desired durable state. Loss after external effect and before marker requires existing effect-specific idempotency/unknown handling; no blanket exactly-once claim.
+
+Installation is not dispatch: installing a descriptor or subscription does not create a model job, owner grant, outbound action or notification. All later work retains original-authority final effect gates. A newly available module can offer old attachments for explicit local selection, but it cannot automatically replay old owner grants, consume old opportunities or retag old capability revisions as current.
+
+Required runtime acceptance: eight rows × enabled/disabled installer; invalid cross-binding; invalid required vs optional attachment; base signature/schema failure; missing required-on-success; nonterminal/cancelled attachments; original-key historical receipt; equal revision conflict; failure before receipt commit, before accounting marker, during U/P group install and after async receiver change; logout/restore/relogin; repeated result delivery with already applied sibling; progress arriving before installation; unrelated action receipt proceeding despite a broken consistency module. No such tests are claimed by this document.

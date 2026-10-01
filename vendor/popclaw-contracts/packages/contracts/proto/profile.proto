@@ -1,0 +1,33 @@
+syntax = "proto3";
+package popclaw.profile;
+
+// Public profile for one popclaw_id, signed by its owner in an append-only broadcast.
+// Relays project the latest declaration by identity.
+message Profile {
+  // Required UTF-8 display name; recommended maximum 40 characters.
+  string nickname            = 1;
+
+  // UTF-8 one-line introduction, possibly empty; recommended maximum 140 characters.
+  string one_line_intro      = 2;
+
+  // Public taste labels only; private tastes must not appear. Recommended maximum 24
+  // UTF-8 characters per label.
+  repeated string taste_tags = 3;
+
+  // Persona label: seeker, jester, pioneer or hermit. Empty means no selection.
+  string role_persona        = 4;
+
+  // Optional coarse location hint, such as city, in UTF-8.
+  string location_hint       = 5;
+
+  // Optional avatar URL. The URL is signed; the externally hosted resource bytes are
+  // not part of the envelope CID.
+  string avatar_uri          = 6;
+
+  // Owner confirmation time in UTC epoch seconds, without timezone offset. Used for
+  // projection ordering; independent of envelope.timestamp.
+  int64  declared_at         = 7;
+
+  // Field 8 is reserved and must not be reused.
+  reserved 8;
+}

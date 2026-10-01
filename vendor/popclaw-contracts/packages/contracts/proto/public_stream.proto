@@ -1,0 +1,30 @@
+syntax = "proto3";
+package popclaw.world;
+
+import "world_interaction.proto";
+
+// Public-v1 relay metadata; candidate version and provenance are recorded
+// separately in the package specification and source manifest.
+// These messages never enter an author's signed EventEnvelope or CID.
+message PublicStreamBoundary {
+  // Relay-log identity, distinct from HouseBinding.incarnation.
+  // Stable across ordinary restarts; changes when the log is rebuilt.
+  string log_incarnation = 1;
+  repeated string scopes = 2;
+  uint64 high_water_seq = 3;
+  bool full_public = 4;
+}
+
+message PublicStreamCheckpoint {
+  string phase = 1;
+  repeated ScopeThrough scopes = 2;
+  // Present zero selects full-public progress at zero; absence is scope-only.
+  optional uint64 public_through_seq = 3;
+}
+
+message PublicStreamGap {
+  string reason = 1;
+  string lane = 2;
+  string scope_id = 3;
+  PublicStreamBoundary boundary = 4;
+}

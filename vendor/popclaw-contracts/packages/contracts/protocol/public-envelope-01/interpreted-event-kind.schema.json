@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+      "maxLength": 64
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "transport": {
+      "const": "house"
+    },
+    "signer": {
+      "enum": [
+        "user",
+        "official"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "body_schema": {
+      "type": "object",
+      "$comment": "Meta-validate this embedded schema against the unchanged pinned schema profile; this node is not a bypass."
+    },
+    "public_scope_declaration": {
+      "enum": [
+        "manifest_scopes_only",
+        "dynamic_registered_scopes"
+      ]
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "transport",
+    "signer",
+    "description",
+    "body_schema"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "Interpreted HouseEvent/private kind schema; opaque transport does not require this row"
+}

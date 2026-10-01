@@ -1,0 +1,46 @@
+{
+  "no_card": {
+    "popclaw_id": "11111111111111111111111111111111",
+    "sigil": "ha1pcqsq",
+    "profiles": [],
+    "house_follower_count": 0,
+    "house_post_count": 0,
+    "house_reply_received_count": 0
+  },
+  "clean_card": {
+    "popclaw_id": "11111111111111111111111111111111",
+    "sigil": "ha1pcqsq",
+    "profiles": [],
+    "house_follower_count": 0,
+    "house_post_count": 0,
+    "house_reply_received_count": 0,
+    "card": {
+      "nickname": "Mira",
+      "one_line_intro": "",
+      "taste_tags": [],
+      "role_persona": "",
+      "location_hint": "",
+      "avatar_uri": "",
+      "declared_at_ms": 1790705946000,
+      "payout_addresses": []
+    }
+  },
+  "protected_card": {
+    "popclaw_id": "11111111111111111111111111111111",
+    "sigil": "ha1pcqsq",
+    "profiles": [],
+    "house_follower_count": 0,
+    "house_post_count": 2,
+    "house_reply_received_count": 1,
+    "card": {
+      "nickname": "Mira",
+      "one_line_intro": "first card",
+      "taste_tags": ["maps", "tea"],
+      "role_persona": "Ranger",
+      "location_hint": "Hangzhou",
+      "avatar_uri": "https://example.invalid/avatar.png",
+      "declared_at_ms": 1790705946000,
+      "payout_addresses": []
+    }
+  }
+}

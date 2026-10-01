@@ -1,0 +1,821 @@
+// Generic world-interaction candidate. Application vocabulary is declared
+// by house manifests. Signed canonical cores omit implicit defaults.
+// uint64 JSON values are decimal strings. Times are UTC epoch seconds in
+// protobuf and whole-second RFC 3339 UTC strings at JSON/tool boundaries.
+syntax = "proto3";
+package popclaw.world;
+
+// House binding and capability context
+// ===========================================================================
+
+// Identity tuple binding every world-interaction artifact to one house
+// incarnation. Cache keys, proofs, results, permits, observations and stream
+// incarnations all carry it. incarnation changes on restore/rebuild; key or
+// incarnation change blocks execution until the trust path resolves it.
+message HouseBinding {
+  // Canonical origin, e.g. "https://demo.loreshow.com". No trailing slash, no path.
+  string origin        = 1;
+  // Pinned house authority key, base58 Ed25519 public key as used for
+  // popclaw_id. Pinned by the bootstrap trust path, never learned from
+  // the same untrusted response that it is supposed to prove.
+  string house_key     = 2;
+  // Opaque server incarnation id, stable across restarts, changed by
+  // restore/rebuild. Not a stream log incarnation (§4).
+  string incarnation   = 3;
+}
+
+// Signed intent context. Travels INSIDE the signed IntentPayload envelope
+// so every field below is covered by the actor signature
+// and by the envelope event_id (CID). Zero-default elision applies.
+message IntentContext {
+  // Target house. Must resolve consistently with IntentPayload.lorehouse;
+  // new-path admission rejects ambiguous slug-only routing.
+  string house_origin        = 1;  // HouseBinding.origin
+  string house_key           = 2;  // HouseBinding.house_key (pin check)
+  string incarnation         = 3;  // HouseBinding.incarnation
+  // session binding: active session id and fence at signing time.
+  string session_id          = 4;
+  string fence               = 5;
+  // SHA-256 hex (64 chars) of the exact manifest bytes the client validated
+  // the kind/schema against. Binds this request to one capability revision.
+  string capability_revision = 6;
+  // schema_version of intent_kind's params schema in that manifest.
+  uint32 schema_version      = 7;
+  // UTC epoch seconds; admission rejects a fresh unrecorded request at or
+  // after this instant. Exclusive bound.
+  int64  valid_until         = 8;
+}
+
+// Detached proof that one exact manifest belongs to one pinned house.
+// Signs the domain-separated pair {HouseBinding, manifest digest} with the
+// pinned house authority key. The proof is response metadata; the digest
+// is NOT recursively hashed inside the manifest itself.
+// Trust bootstrap (protocol/public-envelope-01/TRUST.md): a
+// bound manifest proof is verified against the EXISTING pin, the exact
+// response body digest and the HouseBinding. A first-contact TOFU pin may be
+// established by a validated HTTPS fetch, after which the same response's
+// proof is verified under that pin — a signature using a key supplied by the
+// same untrusted response is never an independent trust source. The
+// session-ACK key (hex) and HouseBinding.house_key (base58) denote the SAME
+// 32-byte authority key; comparisons decode both encodings.
+// Signing domain follows the house_session convention (ASCII prefix ||
+// canonical proto3 bytes): "POPCLAW_WORLD_MANIFEST_PROOF_V1".
+message ManifestProof {
+  HouseBinding house             = 1;
+  // SHA-256 hex of the exact final served manifest bytes (capability_revision).
+  string      manifest_digest    = 2;
+  int64       signed_at          = 3;
+  bytes       authority_signature = 4;  // Ed25519 over the canonical core
+}
+
+// ===========================================================================
+// §2 Action results and status reads
+// ===========================================================================
+
+// Terminal/lifecycle states of one admitted action request. `accepted` is
+// transport persistence only; `executing` is a durable permit; only
+// `succeeded` proves successful business execution. `unknown` is a CLIENT
+// observation (missing evidence), not a server state, and deliberately has
+// no value here.
+enum ActionStatus {
+  ACTION_UNSPECIFIED = 0;  // never on the wire (zero-elision rule)
+  ACCEPTED           = 1;
+  EXECUTING          = 2;
+  SUCCEEDED          = 3;
+  REJECTED           = 4;
+  CANCELLED          = 5;
+}
+
+// House-signed canonical result core. Signed with the pinned result
+// authority key over domain "POPCLAW_WORLD_ACTION_RESULT_V1" (ASCII prefix
+// || canonical proto3 bytes, house_session convention). Terminal
+// entries are immutable; only the readiness view (§5) may keep evolving.
+message ActionResult {
+  HouseBinding house        = 1;
+  string       actor_id     = 2;   // base58 popclaw_id of the requesting actor
+  string       audience_id  = 3;   // popclaw_id the result is sealed to (== actor)
+  // == signed envelope event_id of the accepted request (request_id, v1).
+  string       request_id   = 4;
+  // SHA-256 hex of the exact accepted envelope bytes (immutable retry bytes).
+  string       request_digest = 5;
+  // Empty until a permit exists; then stable for the life of the request.
+  string       execution_id = 6;
+  ActionStatus status       = 7;
+  // Monotonic uint64, decimal string at JSON boundaries. Bounded by the
+  // house incarnation; never reset within it.
+  uint64       status_revision = 8;
+  // Stable English code from errors.md ("OK" when status=SUCCEEDED and no
+  // finer code applies).
+  string       code         = 9;
+  string       kind         = 10;
+  uint32       schema_version = 11;
+  string       capability_revision = 12;
+  // Bounded immutable business result bytes (opaque to the protocol).
+  bytes        result_body  = 13;
+  // SHA-256 hex of result_body when result_body is present.
+  string       result_digest = 14;
+  int64        committed_at = 15;  // UTC epoch seconds of terminal commit
+  // Optional authenticated attachments (§3/§4). Each is independently
+  // bound by the result signature.
+  WorldSnapshot         snapshot      = 16;
+  SubscriptionDescriptor subscription = 17;
+  ParticipationDescriptor participation = 18;
+}
+
+// Signed envelope for ActionResult transport.
+message SignedActionResult {
+  ActionResult result     = 1;
+  bytes        signature  = 2;  // result-authority Ed25519 over canonical core
+}
+
+// Additive authenticated status read. One request reads exactly one
+// request_id owned by actor_id. Domain "POPCLAW_WORLD_ACTION_STATUS_READ_V1".
+message ActionStatusRequest {
+  HouseBinding house      = 1;
+  string       actor_id   = 2;
+  string       request_id = 3;
+  string       nonce      = 4;  // fresh per query, never reused
+  int64        issued_at  = 5;
+  int64        expires_at = 6;  // bounded TTL (limits table), exclusive
+  bytes        signature  = 7;  // actor Ed25519
+}
+
+message ActionStatusResponse {
+  SignedActionResult result = 1;   // absent only for the error cases in errors.md
+  // Independently signed CHANGING observation : progress is a
+  // mutable view and must never ride inside the immutable terminal
+  // ActionResult signature. Absent when no subscription/barrier is involved.
+  SignedSubscriptionObservation progress = 2;
+}
+
+// Changing, actor-bound subscription progress — an observation, not a
+// terminal claim. Server side carries only SERVER-provable facts (its own log
+// and sealed barriers); client-local replay/ready/gap states
+// are computed by the plugin from its durable cursors and never reported to
+// or asserted by the house, so the anonymous stream stays anonymous.
+message SubscriptionObservation {
+  uint32 version          = 1;  // 1
+  HouseBinding house      = 2;
+  string actor_id         = 3;
+  string participation_id = 4;
+  string barrier_id       = 5;  // empty when no barrier is involved
+  // Descriptor revision this observation's barrier/snapshot was built
+  // against. An observation for an OLD barrier/descriptor can never replace
+  // the current subscription even with a higher observation_revision.
+  uint64 descriptor_revision = 6;
+  // Monotonic per (house, actor, participation); decimal string in JSON.
+  // Equal revision with differing content is CLOSURE-class conflict (see
+  // state-transitions.md §2 merge rules, applied identically here).
+  uint64 observation_revision = 7;
+  // SERVER publication fact: barrier sealed (all REGISTERED members present
+  // in the house log + every declared scope index) or not yet.
+  string publication_state = 8;  // waiting_publication | published | failed
+  // House log facts at observation time.
+  string log_incarnation  = 9;
+  uint64 high_water_seq   = 10;
+  repeated ScopeThrough published_through = 11;  // per declared scope, through barrier members
+  // Binds the observation to THIS status query. query_request_id is the
+  // EXACT echo of ActionStatusRequest.request_id (the queried ACTION id,
+  // because that field names the action being read); the fresh query_nonce
+  // distinguishes repeated reads of the same action. An observation answers
+  // exactly one (request_id, nonce) pair and is never served as a cached
+  // answer to another.
+  string query_request_id = 12;
+  string query_nonce      = 13;
+  int64  observed_at      = 14;
+}
+
+message SignedSubscriptionObservation {
+  SubscriptionObservation observation = 1;
+  // House result authority, domain POPCLAW_WORLD_SUBSCRIPTION_OBSERVATION_V1,
+  // covering the full observation core (fields 1..14; bounded fixed content,
+  // no pagination).
+  bytes signature = 2;
+}
+
+message ScopeThrough {
+  string scope_id    = 1;
+  uint64 through_seq = 2;
+}
+
+// ===========================================================================
+// §3 Participation descriptor — typed mirror of participation.schema.json
+// ===========================================================================
+
+// Opaque, resource-specific machine profile delivered only inside
+// authenticated ActionResult / verified private state wrapper — never from
+// business bodies or guide prose. All IDs are opaque to the protocol.
+message ParticipationDescriptor {
+  uint32       version          = 1;  // 1
+  HouseBinding house            = 2;
+  string       actor_id         = 3;
+  string       participation_id = 4;  // durable, survives logout/login
+  uint64       revision         = 5;  // monotonic within house incarnation
+  // Current named budget/opportunity window (opaque id, UTC half-open range).
+  string       window_id        = 6;
+  int64        window_opens_at  = 7;
+  int64        window_closes_at = 8;
+  repeated     ActionGroup action_groups  = 9;
+  repeated     Opportunity opportunities   = 10;
+  repeated     Budget      budgets         = 11;
+  // C2 OPTIONAL declared shared DM response slot for THIS window. Empty =
+  // not declared. When declared: every DM-qualified opportunity of the
+  // window (across groups; installed now or added later) must carry exactly
+  // this one-use dedupe key — a single bounded reply slot contended on by
+  // world-speech intents and direct DM alike. The declaration is IMMUTABLE
+  // for the window once trusted-installed: later revisions cannot remove or
+  // replace it, and new opportunity IDs cannot bypass it
+  // (RESPONSE_SLOT_IMMUTABLE). When absent: per-opportunity-qualified DMs
+  // may use their own distinct dedupe keys, still bounded by the shared
+  // outbound_message budget and local ceilings. No per-world vocabulary is
+  // interpreted — this is a generic, machine-checkable binding.
+  string       dm_response_slot_key = 12;
+}
+
+message ActionGroup {
+  string id            = 1;
+  // Declared manifest intent kinds routable through this group.
+  repeated string intent_kinds = 2;
+  // WINDOW: a group takeover binds (group, original window) and releases at a
+  // genuinely new window. EXPLICIT: persists across windows until explicit
+  // owner resume. Whole-participation manual control dominates both.
+  string control_reset = 3;  // "window" | "explicit"
+  // Egress channels this group's expression budget covers. "intent" is always
+  // implied (absent array = intent-only). "direct_message" additionally lets
+  // the coordinator's EXISTING authorized DM path spend this group's shared
+  // outbound budget and response-slot dedupe key under the same participation
+  // gate — the typed context binding for autonomous direct DM, WITHOUT
+  // inventing a manifest intent kind (the DM path is a protocol-reserved
+  // pseudo-kind "direct_message", see protocol/retained/state-transitions.md §5).
+  repeated string channels = 4;  // subset of {"intent","direct_message"}
+}
+
+// A real, currently valid opportunity. Only two trigger forms exist:
+// time eligibility, or validated source arrival plus time eligibility.
+message Opportunity {
+  string id               = 1;
+  // Required for the source-arrival form: an actual validated event CID
+  // (hex 64). Evidence reference, never an instruction.
+  string source_event_id  = 2;
+  string action_group_id  = 3;
+  // Identifies the budget RESOURCE for this opportunity (see Budget).
+  string budget_group_id  = 4;
+  string budget_window_id = 5;
+  int64  not_before       = 6;  // inclusive
+  int64  expires_at       = 7;  // exclusive; within [window_opens_at, window_closes_at]
+  // Stable business-derived key; survives transport re-encryption/replay.
+  // A descriptor update can never reset a consumed/reserved key.
+  string dedupe_key       = 8;
+  // C2 per-opportunity egress qualification. Absent = intent-only. Effective
+  // egress is the INTERSECTION with the owning group's channels: an
+  // autonomous direct DM requires "direct_message" in BOTH the group's and
+  // THIS opportunity's channels. Slot semantics are governed by the
+  // descriptor's optional dm_response_slot_key (see ParticipationDescriptor):
+  // when a window DECLARES that key, every DM-qualified opportunity of the
+  // window — installed or later added — must carry exactly that one-use
+  // dedupe key (single shared reply slot, contended on by world-speech
+  // intents and direct DM alike; binding frozen at trusted installation).
+  // When NOT declared, per-opportunity-qualified DMs may use their own
+  // distinct dedupe keys, still bounded by the shared outbound budget and
+  // local ceilings. Absence of a DM-qualified opportunity grants no DM
+  // authority in either mode.
+  repeated string channels = 9;  // subset of {"intent","direct_message"}
+}
+
+message Budget {
+  string id              = 1;
+  string window_id       = 2;
+  // Resource-specific suggested limit; a suggestion, never authorization.
+  // One counter per resource — turns, messages and notices never share one.
+  string resource        = 3;  // "agent_turn" | "outbound_message" | "owner_notice"
+  // Bounded counter (L_BUDGET_SUGGESTED_LIMIT_MAX = 1000): uint32 on the
+  // wire, plain JSON integer at tool boundaries — deliberately NOT uint64,
+  // so the "uint64 ⇒ decimal string" rule never applies to it.
+  uint32 suggested_limit = 4;
+}
+
+// ===========================================================================
+// §4 Scoped public stream (G2)
+// ===========================================================================
+
+// Wire shapes for the anonymous scoped mode of GET /v1/world-stream
+// (opt-in discriminator scoped=1). Anonymous means: no actor, session,
+// authorization, participant, descriptor revision or barrier id anywhere in
+// the request or headers. Scope IDs may permit traffic correlation; they are
+// selection labels, not network anonymity.
+
+// SSE control event "world_boundary" — sent first after (re)connect and
+// whenever the server needs to restate the frame of reference.
+message WorldStreamBoundary {
+  string   log_incarnation = 1;  // changes on migration/rebuild, not restart
+  repeated string scopes   = 2;  // the exact scope set being served
+  uint64   high_water_seq  = 3;  // replay upper bound H (decimal string in JSON)
+}
+
+// SSE control event "world_checkpoint" — per-scope durable progress marks.
+// A checkpoint may advance a scope only after every preceding page row of
+// that scope is durable on the client. Heartbeats never advance cursors.
+message WorldStreamCheckpoint {
+  string          phase        = 1;  // "replay" | "live"
+  repeated ScopeThrough scopes = 2;
+}
+
+// SSE control event "world_gap" — explicit recovery demand; never a silent
+// reset to latest.
+message WorldStreamGap {
+  string reason        = 1;  // unknown_scope | cursor_ahead | log_incarnation_changed | history_pruned
+  string scope_id      = 2;  // empty for incarnation-level gaps
+  // Best boundary the server can still serve consistently.
+  WorldStreamBoundary boundary = 3;
+}
+
+// Per-scope cursor vector carried by the scoped request (bounded, sorted by
+// scope_id). New scopes start at 0 — never at the global latest seq.
+message ScopeCursor {
+  string scope_id  = 1;
+  uint64 after_seq = 2;
+}
+
+// Actor-bound subscription descriptor delivered through authenticated
+// ActionResult; installs/advances the actor's scope set. Monotonic by
+// descriptor_revision; equal revision with a changed set is a protocol
+// conflict; an older result can never roll the set back.
+message SubscriptionDescriptor {
+  HouseBinding house              = 1;
+  string       actor_id           = 2;
+  string       participation_id   = 3;
+  uint64       descriptor_revision = 4;
+  string       log_incarnation    = 5;
+  repeated string scopes          = 6;
+  // Barrier this descriptor's snapshot was made consistent with (§5).
+  string       barrier_id         = 7;
+}
+
+// Complete opaque world state snapshot. Only full snapshots of the SAME
+// state_ref supersede one another by state_revision; every event is retained
+// separately by event_id. No deltas, no reducer, no scripts.
+message WorldSnapshot {
+  string state_ref      = 1;
+  uint64 state_revision = 2;  // uint64, decimal string in JSON
+  int64  as_of          = 3;
+  string schema_kind    = 4;  // manifest event kind naming the snapshot schema
+  uint32 schema_version = 5;
+  bytes  body           = 6;  // bounded opaque bytes
+}
+
+// ===========================================================================
+// §5 Publication barrier and readiness (G2)
+// ===========================================================================
+
+// Immutable membership set of public outbox events that a business snapshot
+// through revision R must show published before readiness may advance.
+// Membership is an explicit set, never MAX(outbox_id) or a timestamp
+// predicate. ONE LOGICAL barrier: each registration PAGE is bounded by
+// L_BARRIER_MEMBERS_MAX (256); larger coverages register more pages of the
+// SAME barrier (fixed member_total + full-set members_digest up front) —
+// never truncation, never silent splitting into independent barriers.
+message SubscriptionBarrier {
+  string       barrier_id       = 1;
+  HouseBinding house            = 2;
+  string       actor_id         = 3;
+  string       participation_id = 4;
+  string       state_ref        = 5;
+  uint64       state_revision   = 6;
+  repeated string scopes        = 7;
+  // Complete membership travels in bounded registration PAGES on
+  // RegisterBarrierRequest; this canonical list is the assembled full set the
+  // HOUSE stores after sealing (never a partial page).
+  repeated BarrierMember members = 8;
+  // SHA-256 hex over the canonical sorted COMPLETE member list; immutable.
+  string       members_digest   = 9;
+  int64        created_at       = 10;
+  // Exact member count of the full set (total+digest
+  // are fixed up front so no final member can be silently omitted).
+  uint64       member_total     = 11;
+}
+
+message BarrierMember {
+  string event_id = 1;  // hex 64 CID
+  string kind     = 2;
+  repeated string scopes = 3;
+}
+
+// Internal typed publication result: proves presence in world_stream_log AND
+// every declared scope index, with stable event_id/seq/incarnation.
+message PublicationReceipt {
+  string event_id        = 1;
+  uint64 seq             = 2;
+  string log_incarnation = 3;
+  repeated string scopes = 4;  // scope indexes that contain the event
+  bool   logged          = 5;
+}
+
+// SERVER-side publication readiness record (: server facts
+// only). States: waiting_publication -> published (sealed: the house has
+// ITSELF re-verified every registered member against its own log AND every
+// declared scope index) or failed (a member's publication permanently
+// rejected — diagnosable reason, never a silent omission). Client-local
+// replay/replay-caught-up/gap states are plugin facts derived from its own
+// durable cursors plus a SubscriptionObservation; they never appear here and
+// the server never claims them.
+message SubscriptionReadiness {
+  string barrier_id      = 1;
+  string publication_state = 2;  // waiting_publication|published|failed
+  string detail_code     = 3;  // errors.md code when failed/waiting
+  uint64 readiness_revision = 4;  // monotonic; decimal string in JSON
+  repeated PublicationReceipt receipts = 5;  // house-verified evidence, bounded pages
+  int64  updated_at      = 6;
+}
+
+// ===========================================================================
+// §6 Internal worker API — house-hosted, loopback/private network only,
+// absent from the public reverse proxy. House service authentication and
+// producer signing identities are separate from users.
+// ===========================================================================
+
+// POST /internal/world-actions/claim — grant/re-deliver durable permits.
+// Never a mere queue lease: retries return the SAME execution_id. Each permit
+// is delivered SIGNED, together with the original verified request envelope
+// bytes (exact bytes the actor signed; params_digest hashes IntentPayload
+// params from these bytes) so the worker never trusts claim-echoed values.
+message ClaimActionsRequest {
+  string worker_id            = 1;
+  HouseBinding house          = 2;  // worker is restricted to this house
+  repeated string kinds       = 3;  // restricted kind set
+  uint32 max_count            = 4;  // bounded batch (limits table)
+  uint32 max_schema_version   = 5;
+}
+
+message ClaimActionsResponse {
+  repeated SignedExecutionPermit permits = 1;
+  // Positionally paired with permits: the verbatim accepted SignedPayload
+  // envelope bytes for each permit (actor signature verifiable by the worker
+  // against permit.actor_id without any house-supplied parsed fields).
+  repeated bytes request_envelopes = 2;
+}
+
+// Immutable execution permit, one per request. Leases may schedule retries
+// but never revoke a permit. Travels only inside SignedExecutionPermit,
+// signed over domain "POPCLAW_WORLD_EXECUTION_PERMIT_V1".
+message ExecutionPermit {
+  string execution_id       = 1;
+  string request_id         = 2;
+  string request_digest     = 3;
+  HouseBinding house        = 4;
+  string actor_id           = 5;
+  string audience_id        = 6;
+  string session_id         = 7;
+  string fence              = 8;
+  string worker_id          = 9;
+  string kind               = 10;
+  uint32 schema_version     = 11;
+  string capability_revision = 12;
+  string params_digest      = 13;  // SHA-256 hex of exact params bytes
+  int64  valid_until        = 14;
+  int64  granted_at         = 15;
+}
+
+message SignedExecutionPermit {
+  ExecutionPermit permit = 1;
+  bytes signature        = 2;  // house Ed25519, domain POPCLAW_WORLD_EXECUTION_PERMIT_V1
+}
+
+// Terminal worker result, one per execution. The worker signs the persisted
+// core AFTER business commit; a lost ACK means resubmitting identical bytes.
+// Travels only inside SignedWorkerResult, domain
+// "POPCLAW_WORLD_WORKER_RESULT_V1". RESULT_MISMATCH comparison set:
+// execution_id, request_id, request_digest, worker_id, house — each must
+// equal the assigned SignedExecutionPermit's field; any difference rejects
+// the delivery without side effects.
+// Typed completion attachments (fields 12–14): the three generic
+// ActionResult attachments travel HERE, typed and signed as part of the
+// whole canonical core — never embedded ad hoc inside the opaque result_body
+// and never through a second envelope. Rules:
+// * All three are OPTIONAL: an ordinary result carries none. They are
+// permitted only on a terminal delivery (status succeeded/rejected).
+// * Actor/audience/authorization identity always comes from the ORIGINAL
+// VERIFIED REQUEST and its SignedExecutionPermit — never from the
+// attachment's own claims. The house cross-checks every attachment
+// binding (house == WorkerResult.house; participation/subscription
+// actor_id == permit actor_id; participation_id consistency) before
+// copying the typed values into ActionResult fields 16–18 and signing it.
+// * Idempotent retry stability: the house persists the FULL original
+// canonical worker core (attachments included). Duplicate comparison
+// covers the complete canonical core bytes — a retry that changes,
+// removes or adds an attachment is RESULT_DIGEST_CONFLICT, never a
+// silent metadata update. Byte-identical replay returns the stored
+// result (RESULT_ALREADY_STORED).
+// * Publication readiness stays separate (§5): attachments assert facts,
+// not barrier completion.
+message WorkerResult {
+  string execution_id    = 1;
+  string request_id      = 2;
+  string request_digest  = 3;
+  string worker_id       = 4;
+  HouseBinding house     = 5;
+  string status          = 6;  // "succeeded" | "rejected"
+  string code            = 7;  // errors.md code
+  bytes  result_body     = 8;
+  string result_digest   = 9;
+  string business_revision = 10;  // business DB revision of the commit
+  int64  committed_at    = 11;
+  // Optional typed attachments the house verifies and copies into the
+  // authenticated ActionResult. See the message header for binding,
+  // absence and replay rules.
+  WorldSnapshot         snapshot      = 12;
+  SubscriptionDescriptor subscription = 13;
+  ParticipationDescriptor participation = 14;
+}
+
+message SignedWorkerResult {
+  WorkerResult result   = 1;
+  bytes signature       = 2;  // worker key (pinned in the internal registry)
+}
+
+message CompleteActionsRequest {
+  repeated SignedWorkerResult results = 1;  // bounded batch
+}
+
+message CompleteActionsResponse {
+  // Per result, one of: accepted | duplicate | conflict (errors.md codes
+  // RESULT_ALREADY_STORED / RESULT_DIGEST_CONFLICT / RESULT_MISMATCH).
+  repeated string outcomes = 1;
+}
+
+// POST /internal/world-actions/result — read the house-stored result/pending
+// for an exact execution_id by its assigned worker only.
+message ReadActionResultRequest {
+  string worker_id     = 1;
+  string execution_id  = 2;
+}
+
+message ReadActionResultResponse {
+  SignedWorkerResult result = 1;  // absent while pending — absence is NOT
+                                  // proof of "no
+                                  // business effect"
+                                  // (errors.md
+                                  // PENDING
+                                  // semantics)
+}
+
+// POST /internal/world-scopes/register — idempotent registration of dynamic
+// public scopes by the configured worker only. Auxiliary control operation,
+// not a fourth downstream stream.
+message RegisterPublicScopesRequest {
+  string worker_id      = 1;
+  HouseBinding house    = 2;
+  repeated string scope_ids = 3;  // bounded; stable random public labels
+}
+
+message RegisterPublicScopesResponse {
+  repeated string registered = 1;  // canonical stored set after this call
+}
+
+// POST /internal/world-publication/status — bounded typed publication lookup
+// backing barrier receipts. Never exposes private outbox rows.
+message PublicationStatusRequest {
+  string worker_id = 1;
+  repeated string event_ids = 2;  // bounded batch
+}
+
+message PublicationStatusResponse {
+  repeated PublicationReceipt receipts = 1;
+}
+
+// POST /internal/world-subscriptions/register-barrier — the worker registers
+// ONE LOGICAL barrier's identity and immutable coverage in BOUNDED PAGES
+// (a snapshot with more than L_BARRIER_MEMBERS_MAX
+// members is still ONE barrier, paged — never truncated and never silently
+// split into independent barriers). The full core (actor/house/
+// participation/state_ref/state_revision/scopes/member_total/members_digest)
+// is frozen in the worker's business snapshot transaction and repeated on
+// EVERY page; idempotency compares the FULL immutable core, not just the
+// member digest : same barrier_id with any changed
+// field is BARRIER_COVERAGE_CONFLICT; a differing page under the same
+// (barrier_id, registration_page) is BARRIER_PAGE_CONFLICT. When the house
+// has assembled member_total members whose sorted set hashes to
+// members_digest, registration SEALS; completion requires the seal.
+message RegisterBarrierRequest {
+  string worker_id = 1;
+  // Full immutable barrier core; members_digest covers the COMPLETE sorted
+  // membership (all pages), member_total the exact count.
+  SubscriptionBarrier barrier = 2;
+  // 1-based page number of this submission.
+  uint32 registration_page = 3;
+  // This page's members, each at most L_BARRIER_MEMBERS_MAX entries.
+  repeated BarrierMember members_page = 4;
+}
+
+message RegisterBarrierResponse {
+  string barrier_id       = 1;
+  string members_digest   = 2;  // echo of the frozen full-set digest
+  uint64 members_received = 3;  // assembled so far
+  uint64 member_total     = 4;
+  string registration_state = 5;  // partial | sealed | already_registered
+}
+
+// POST /internal/world-subscriptions/complete-barrier — only the ORIGINAL
+// registering worker (compared on the full barrier core) may call. The
+// worker claims its outbox relay persisted every member; the house does NOT
+// trust the claim: it re-verifies the SEALED full membership against its OWN
+// world_stream_log rows and every declared scope index, then seals
+// SubscriptionReadiness (publication_state=published). An unsealed
+// registration is BARRIER_INCOMPLETE_REGISTRATION; missing members keep it
+// waiting_publication; permanently rejected members mark it failed with a
+// diagnosable detail code.
+message CompleteBarrierRequest {
+  string worker_id     = 1;
+  string barrier_id    = 2;
+  // Worker-side receipts (its persisted envelope bytes exist and were
+  // pushed); advisory input — the house's own log is authoritative.
+  repeated PublicationReceipt receipts = 3;
+}
+
+message CompleteBarrierResponse {
+  SubscriptionReadiness readiness = 1;
+}
+
+// ===========================================================================
+// §7 Execution closure — binds full signed observation binding with fresh query nonce
+// and
+// monotonic observation_revision; aggregate logout over every older covered
+// session with an immutable covered set and sorted terminal manifest;
+// explicit unknown/zero-coverage/incarnation/conflict states where 404 is
+// never zero proof.
+// ===========================================================================
+
+// One session covered by a stop scope. The covered set is FIXED at stop
+// transaction time: every stopped session of this actor+installation whose
+// entered_op_seq <= stop_through_op_seq. Immutable afterwards.
+message CoveredSession {
+  string session_id     = 1;
+  uint64 entered_op_seq = 2;  // decimal string in JSON
+  string fence          = 3;
+}
+
+// Terminal manifest entry — every admitted request of the covered set has
+// EXACTLY ONE entry, in one of the three terminal states; while not yet
+// terminal it is pending and counted in pending_count. session_id carries
+// the per-session drain attribution (aggregation rule: per-session closures roll
+// up into the aggregate confirmation).
+message ClosureRecord {
+  string request_id    = 1;
+  string execution_id  = 2;  // empty when cancelled before permit
+  string session_id    = 3;  // session the request was admitted under
+  string status        = 4;  // succeeded|rejected|cancelled (pending never appears here)
+  string result_digest = 5;  // hex; empty only for cancelled
+}
+
+// Aggregate closure over the covered set. Signed observations move
+// closing -> closed; the final closed content and digest are immutable.
+// Covered-set predicate (includes ROTATED-OUT history): a
+// session is covered iff it belongs to this actor+installation, in the SAME
+// house incarnation, with entered_op_seq <= stop_through_op_seq — regardless
+// of HOW it ended (rotated away by a newer enter, expired, or stopped by
+// this leave). Earlier stopped sessions with still-pending permits are
+// covered; only sessions entered AFTER the watermark (e.g. enter14 after
+// leave13) are out of scope.
+message ExecutionClosure {
+  uint32 version            = 1;  // 1
+  string closure_id         = 2;  // stable id of this stop scope
+  HouseBinding house        = 3;
+  string actor_id           = 4;
+  string installation_id    = 5;
+  // Identity of the original stop (LEAVE) request this closure drains.
+  // In v1 stop_through_op_seq == that request's RequestCore.op_seq (session
+  // semantics:
+  // leave(op_seq=N) forbids every enter of this installation with
+  // op_seq <= N); the watermark is kept explicit explicitly so a
+  // future stop form cannot silently widen scope.
+  string stop_request_id    = 6;
+  uint64 stop_through_op_seq = 7;  // watermark; covered = entered_op_seq <= this
+  // Immutable membership set + its digest (sorted by session_id).
+  repeated CoveredSession covered_sessions = 8;
+  string covered_digest     = 9;
+  // Aggregated ledger counts over ALL admitted requests of the covered set.
+  // Every admitted request has exactly one state; pending includes every
+  // covered request without a durable terminal record. closed requires
+  // pending_count = 0.
+  uint64 pending_count      = 10;
+  uint64 succeeded_count    = 11;
+  uint64 rejected_count     = 12;
+  uint64 cancelled_count    = 13;
+  // SHA-256 hex over the canonically sorted ClosureRecord set — a digest of
+  // WHAT terminalized, never a signature over bare counts.
+  string results_digest     = 14;
+  string phase              = 15;  // "closing" | "closed"
+}
+
+// Server-side result states for a restricted exit-control closure query.
+// Distinct values, distinct codes — a transport 404 is never any of them.
+enum ClosureQueryResult {
+  CLOSURE_QUERY_UNSPECIFIED = 0;  // never on the wire
+  CLOSURE_NOT_FOUND     = 1;  // no stop scope recorded for actor/installation/watermark
+  CLOSURE_NOT_CREATED   = 2;  // stop request known, closure aggregation not yet created
+  CLOSURE_CLOSING       = 3;
+  CLOSURE_CLOSED        = 4;
+  CLOSURE_INCARNATION_MISMATCH = 5;  // house restored/rebuilt; old bindings not authoritative
+}
+
+// Restricted exit-control query (plugin locally disabled), served by the
+// non-public control endpoint POST /v1/world-actions/closure-status
+// (protocol/public-envelope-01/SPEC.md; same-origin fixed path, listed in the manifest
+// board). Reads only this actor+installation's covered closure and pages of
+// already-known terminal result references. Cannot invoke, renew, fetch
+// arbitrary snapshots, or reopen ordinary streams. Fresh request_id+nonce
+// per query — a repeated leave key must never be answered with a cached
+// first observation.
+// Domain "POPCLAW_WORLD_CLOSURE_QUERY_V1".
+// Authority-row mandate : the house maintains ONE persistent
+// authority row per (actor, installation, house) even when no session
+// exists. enter, rotate, leave, expiry, admission and first-claim ALL take
+// that row's lock in one fixed order; the stop watermark is persisted and
+// the covered set is FROZEN inside the leave transaction itself. An empty
+// SELECT FOR UPDATE result and a lost ACK are never zero-coverage evidence —
+// CLOSURE_NOT_FOUND / CLOSURE_NOT_CREATED exist precisely because absence
+// of a record proves nothing about executions.
+// Session-control integration: a leave request carries
+// RequestCore{operation=LEAVE, popclaw_id, installation_id, op_seq,
+// request_id, house_origin, issued_at, expires_at, nonce,
+// expected_house_revision, target_session_id}; its watermark semantics are
+// "leave(op_seq=N) forbids every enter of this installation with
+// op_seq <= N". ClosureQueryRequest therefore finds authority by
+// actor+installation+stop request identity/watermark, with NO session_id
+// required — matching "enter lost / ACK lost" leave support.
+message ClosureQueryRequest {
+  HouseBinding house          = 1;
+  string       actor_id       = 2;
+  string       installation_id = 3;
+  // Find authority by actor+installation+stop request/watermark even when
+  // the client never learned a session_id/fence (enter lost / ACK lost).
+  string       stop_request_id = 4;
+  uint64       stop_through_op_seq = 5;
+  string       request_id     = 6;  // fresh idempotency key of THIS query
+  string       nonce          = 7;  // fresh nonce of THIS query
+  int64        issued_at      = 8;
+  int64        expires_at     = 9;
+  // Terminal-reference paging over already-known results (bounded page).
+  uint64       page           = 10;
+  bytes        signature      = 11;  // actor Ed25519
+}
+
+// Outer signed observation. Binds the complete observation context:
+// house binding (origin/key/incarnation), actor, installation, the stop
+// request identity and scope, THIS status query's request_id/nonce, an
+// independent monotonic observation_revision, and the closure digest.
+// Domain "POPCLAW_WORLD_CLOSURE_OBSERVATION_V1".
+// Merge rules (client): validate the full binding, then merge by
+// observation_revision within (house, actor, installation, closure_id);
+// equal revision with a different closure_digest is
+// CLOSURE_OBSERVATION_CONFLICT; a lower revision never rolls back a closed
+// observation; the final closed content/digest is immutable. The original
+// leave AckCore (outcome CLOSED|ALREADY_CLOSED|SUPERSEDED) is untouched
+// and never reinterpreted — observations are a separate signed channel.
+message ClosureObservation {
+  uint32 version              = 1;  // 1
+  HouseBinding house          = 2;
+  string actor_id             = 3;
+  string installation_id      = 4;
+  string closure_id           = 5;
+  string stop_request_id      = 6;
+  uint64 stop_through_op_seq  = 7;
+  // This query's identity — an observation answers exactly one query and
+  // can never be served as a cached answer to another.
+  string query_request_id     = 8;
+  string query_nonce          = 9;
+  // Monotonic per (house, actor, installation, closure_id). Timestamps
+  // never substitute for it.
+  uint64 observation_revision = 10;
+  int64  observed_at          = 11;
+  ClosureQueryResult result   = 12;
+  // Present when result is CLOSURE_CLOSING or CLOSURE_CLOSED.
+  ExecutionClosure closure    = 13;
+  // SHA-256 hex of the canonical ExecutionClosure bytes (core WITHOUT the
+  // closure_digest field itself — see protocol/public-envelope-01/SIGNING.md); the
+  // immutability anchor clients compare across observations.
+  string closure_digest       = 14;
+  // Which page of terminal references this observation carries (echoes the
+  // query's page); SIGNED together with the page below so a partial page is
+  // individually authenticated — a full-set digest alone cannot authenticate
+  // an individual partial page . The immutable final
+  // closure content is anchored by closure_digest; per-query observations
+  // need not be immutable, only correctly signed and bound.
+  uint64 records_page_index   = 15;
+  // Bounded page of ClosureRecords (already-known terminal references).
+  repeated ClosureRecord records_page = 16;
+  // Signature covers fields 1..16 (everything except itself).
+  bytes  signature            = 17;  // house session-authority Ed25519
+}
+
+// POST /v1/world-actions/closure-status reply. result is the authoritative
+// query outcome; observation carries the signed channel only for
+// CLOSURE_CLOSING / CLOSURE_CLOSED (or an incarnation-bearing mismatch
+// reply). absence of an observation is a result code, never silence.
+message ClosureQueryResponse {
+  ClosureQueryResult result = 1;
+  ClosureObservation observation = 2;
+  // When result=CLOSURE_INCARNATION_MISMATCH: the CURRENT binding the client
+  // should re-pin through the trust path before any further control call.
+  HouseBinding current_house = 3;
+  string detail_code = 4;  // errors.md code when result is not CLOSED/CLOSING
+}

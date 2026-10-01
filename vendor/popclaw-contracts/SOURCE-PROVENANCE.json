@@ -1,0 +1,490 @@
+{
+  "protocol_version": "0.1.0-public-envelope-01.6",
+  "description": "Provenance identifiers only, not floating build dependencies or a claim that upstream private revisions are public distribution endpoints.",
+  "licensing_basis": "PopClaw source Apache-2.0 declaration; third-party dependencies retain their own licenses/notices.",
+  "historical_source_resolution": "The upstream_source_commit recorded below did not resolve in any object store examined while preparing 0.1.0-public-envelope-01.6, so the historical source was NOT re-verified this round. The identifier and the source hashes are kept exactly as first recorded. An unresolvable identifier is not evidence that the object never existed, and the current public commit is deliberately not substituted for it: a provenance label that names the wrong origin is worse than one that admits it could not be checked.",
+  "derived_revision": "0.1.0-public-envelope-01.6 is a derived revision of the fixed public candidate 0.1.0-public-envelope-01.5, whose bundle digest was 7956e0d9aebd7f9031193047c30322c1e5fb22a8e3788a78f3d503ad67f03bef. The changes are recorded in packages/contracts/protocol/public-envelope-01/CHANGES.md. This file records no commit of its own: a seal cannot contain the identifier of the commit that carries it, so the producing commit is named in an external receipt instead.",
+  "source_files": [
+    {
+      "path": "packages/contracts/proto/event.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "a00daf45303a58e0d23c4bd3a57da2a946bafa6ea1e75d4ada0aafecec17bb41",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/house_session.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3702186be05c4e4a18d65b3161212dd974eb442ac60e8484bc9d7eade68602eb",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/identity.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "77c2845540046ee31f28891a03df8545f3b8df2cf96c6043931b37bf1ad80413",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/invite.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "76b7ccf3c36e8d789c18fc485d3ccbdeec9884c6cba9484b8973bf8fb5e260c7",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/profile.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "811f129ae371ace67bb59e4da6003efded9c4fb73258cd5abad1c2c1a0ff41bc",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/public_stream.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "df105d348ae502f4b0c9b2abfedeff263845866a2490890879035babe6078808",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/quest.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "0b7efbee5a64d0d7e01d11c2f989162e0d50d87ac0f88c95ea69c7362992a37d",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/proto/world_interaction.proto",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "5e191862798e49b1a69d4b5129c69226451683f0bd6cd96d88e243e17056c58e",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "scripts/gen-proto.sh",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "bdd8f302120e36cd687efef394504cfc774758fc826bad0322e2e8a32f3fdeb1",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/rust/build.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "777c93e3da555e6090a09e4b33f9c9713837d2424b9544e1e692aa450de66528",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/package.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "e96c860d1f61470567596b17f7311e6d568761a99c211cc5f1974cc932aa6d17",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/src/generated/descriptor.js",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "2448dafa788790096fed0550edbef6f6c178475805fae2a6df3dce129d8ed721",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/src/generated/index.d.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "976cc1f8de9d2ea4f502dde8412460bd67d5140fe00a53015af2a6ab8bbcb29f",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/src/generated/index.js",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "2d7fbe952325d4f9ed183fcc0ca39a5c86462a8ef923c8b795a308fdd34c40a1",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/src/house-session.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "602c8c3287eb25a0935efb9b662c1d310ff849093afc7b3aa940b224324a7bcb",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/src/index.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "301d135505d08b1d471eb8c3260f37e4ce879eb55e6308d23817c94b86343525",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/house-event-opacity.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "2b47eeda0806c4593a5813ca1cf8db9eef1b3ec603dfe583b667ea8c042ef33c",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/house-session-board.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "0158d7d6b3e70cd1cfc8d41eb23662aa409a7b1e394595a975b881364045d02b",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/mark-payload-round-trip.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "647f0bb36759001b6ac3ad636ad045872f26b46998b89f2f59b53a16fb022420",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/public-stream-metadata.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "952c72ba8dc7f8a990a91e6b51d999cce36c9c7805744af98eb25252e908e0d6",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/world-feed-item-actor-nickname.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "58b9cbab58858f770beeaf007a85d009ea39c6608995ae32394f020b78da28b2",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tests/world-feed-item-quoted.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "dcc979e46abe1dd2027afc08d21ba2dd107f83af1afaad97737a8e594a7f1ed2",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tsconfig.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "1e30d737ce587c3a4b822849f31d1a033435114d8f43cb209533edf75f3e3a75",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/tsconfig.test.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "9248e9fd8fc5af85ba92511cb1c82dbc4c05ac0e3b0a48f6243f237893495975",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/contracts/vitest.config.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3c4ee6f65f0f874bea63c265d6118c492a74d2c69fa1100ebf3a40947ca99f2e",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/package.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "07f2e7d8a27aac1105b3e1c9ca7f064d2c4e168331f0056a6b6434aaf1212b5d",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/canonical.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "0cddd4d0e4b123ad4b1354654724324bbfdfc0b994c7fab8127a87e7d089cb81",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/cid.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "27d1ca63f881be539f12933d8ac084b252e16c88eff3924d9132b20a6692be2d",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/crockford.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "464c99ea5f054c0d6928fb6faf151e93001cf8627acf7935e2594c666be792f1",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/house-session.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "cd8ebf2cb6ed6322205e22f13e31920cea13f557e04ee645901dc759f91bd6d1",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/index.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "017ff5ba2e2841dbd71beed65e459d6833d835294d63e23912f29e7b67282b67",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/sigil.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "9ce53b5c63006b4ddf8108b011eece65361814113425da67b17397fe8ffde985",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/canonical-parity.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "ced07523be32c1675a82431d0c3e021c2c571df739536317979c0a40366153d8",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/cid.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "6ecdb3c7b3cb415a188336084d4f90a59c9a667ae6734383f10214e3c37aa11e",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/crockford.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "109b08be36c758ce22c9fa151df14d5677668e6512506f2dde008c160830a391",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/fixture-parity.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "539ee27764271231abf37451ba3ffcd5c0c71f82f32c9a01cd7b746eab11054e",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/house-session.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "fa6c0476440023197c90f9c36dc8946e7c57cd6e238f46ff6934daaebfa941bf",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/sigil.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "a952d567e89ed47d34b307b1287a489c321e9bc7f18db3c85cf57231d0e2f6af",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tests/world-allocations.test.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "6db9583f98d82411c4740b4e6aec9da0e074e956bcf2cb28fc18d784ada6b8b2",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/tsconfig.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "f5cf3cd2009afede962c7eb68a1eaa40198490ed3901b74c2a59aec1c8be3c31",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/vitest.config.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3c4ee6f65f0f874bea63c265d6118c492a74d2c69fa1100ebf3a40947ca99f2e",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/rust/Cargo.toml",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "95be1746b99a81fd93d51c8576bfc0e520f04f0dc420dee0404340b9e5d8ea03",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.event.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "bc01e73b47f4079372093808d2faacac673567f0648155ef67459ac041d7876c",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.housesession.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "53669dca4e739bf57396ba37042180216432e5af6d37e4f6a482dcca0380eb44",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.identity.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "0aee6f08eb6e4c07efe05810c48713a5af44785f7c7f2e63de10757fa42554be",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.invite.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "6695c5352252c51dd3c66afbf0ec333d8a316628be534b2e86a99baa68cf759a",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.profile.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "965624832326fc35b51b0f0b04ba44c96ade92916ddc4bce57e83eb769b9cc38",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.quest.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "c3ec4b62faff7d039c30e304bcda1ce0c164066522e5c3649791fd11d79015da",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/generated/popclaw.world.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3451413f119242bb1950caf7584ec105da8cc7466ae9ce6c6839d0a79ec1918c",
+      "derivation": "regenerated from the public proto and pinned tools"
+    },
+    {
+      "path": "packages/contracts/crates/rust/src/lib.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "34ccab8870b5743ef2c91d8b1c303ed20b5c2a18da0197fddc4037d3b0403a5c",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/rust/tests/public_stream_metadata.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "1cbf4482b39921ce2101d05fdf56a440271e15f2bd5b2635dcc17c2b29fbbfea",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/Cargo.toml",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "66a43fe881a9a5fdccd76aa0f459f7d2da755bfd6a6e0e5cbb6b25b8d75cb624",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/bin/gen_fixtures.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "a86883e8116bfe51cea489987477c673a784908943935eae98ce90f4895ea52f",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/canonical.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "66686c885c29b70de2766a16babb15026f0aa8bf7e16a741b4a3a449cd1c2407",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/cid.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "c08e8e16887ad2598bd83259b3e1941aaa7c518be63b3f7890986188cbe521d4",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/crockford.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "f2fd06d4f3fc523423c9c0bcbd577324cdd52245e4c05ef9851fe22fee37d177",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/house_session.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "187cd3e1fdfcea30bd64ef683644a15dfdea656322d6b4ad6d1ee20ba70b29f3",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/lib.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "b40aa715133ffad2e834ea2cfd26e6edb5a4d2ecc940ced994eb6fd0b7fb6342",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/src/sigil.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "6512b5c6f2f33240bea8ffc43cfb94dc8dc0afebaea0b4f61a2780448147e255",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/tests/fixture_parity.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "6a2fd1e99cd98a066d2fd20bde149781e5c61f03388ba8766f6bce887f52ef04",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/tests/house_event_opacity.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3a902cb52bb38010f114f3f66f4930ebfe510f4cb8a61aab3aed5055d3b82fd6",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/tests/house_session.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "61518e6b7cda34d4b59512af58846e3efec92b79faf70c881e87572c1abdfcf1",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/crates/algorithms/tests/world_allocations.rs",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "8395b02598d35f8dd331228c87db999b26209957f6a03c56fb322c67a1a74cf6",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/fixtures/test-vectors.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "42b6b5a5ba7d95754def666c1cb35e6c84283e6b8a4516aa657ead2441756fbf",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/world/canonical.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "a008c27f9b11d99b6447fe31b420be4ee444691b97249801045f326e5d11ce66",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/ts/algorithms/src/world/json.ts",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "d3b7abdef05b91c3bdb8f940c16b3974a85506f53be5a23fad170f1ff434b18d",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "LICENSE",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/retained/errors.md",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "a34ff9422c33f9e591c7b27e875d8f779353f7454917faa9f43978bfd97d4455",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/PUBLIC-STREAM.md",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "5720ff1f8a72d33ed00522c2e42845325bb938911d9f65e9c79efff2736f9fa1",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/RECEIPTS.md",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "70bf7e15df3b5e4eec42b09b7eb30101429d9facde239f212e735d4ca9e2078d",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/SPEC.md",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "58162c270d88e8630bd8841ff2b42bef87bbf3aaa824dcd7f101b58d81c3e1e9",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/action-kind.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "7876b3a6b5ad4cc0077d424feba312d8e10325f15f9b054d3281b849cd130365",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/board.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "0f3ee8cd6d6e8befe92132b313c08adbba6ea013955a40a9718a5e00cb445bb6",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/examples.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "3bf338ee0784b35e73c9375e59507b4e1f7f02c788c4e9f48e316a2ffbf28cc5",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/public-envelope-01/interpreted-event-kind.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "518ad4e1c638808783bc4c5e8b572e2f90ea4772e2f8f81c0ab37bc367418549",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/fixtures/retained-signing-golden.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "9fca3728c28e44b9236fd10fe18111e53733d6dfcd132d31f1a0a159d3716721",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/retained/participation.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "f0a08487e07077582e8214a3d57f876c835fa6f19a7bd37ad92b5528720e08d9",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/retained/private-message.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "663a9a763074c7dd8eaed7553a8fb7fdb950df9533d5788975eac33f03698060",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/retained/schema-profile.schema.json",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "21b0f0c3ea4e2fc2fc2de72c9c134e3a4125ca4fefa42aee0e92bcc8a56ebd25",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    },
+    {
+      "path": "packages/contracts/protocol/retained/state-transitions.md",
+      "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
+      "upstream_source_sha256": "8cac3df1ce1ed9ece02f9d0851fff813df72df45078b9780df4a837372ca4345",
+      "derivation": "selected source; see CHANGES.md for public transformations"
+    }
+  ],
+  "new_files": "Baseline guards, Python descriptor bridge and serial referee, adversarial vectors, build/CI/integrity tools and implementer guidance are new candidate work. Their exact bytes are fixed by CONTRACT-MANIFEST.json."
+}

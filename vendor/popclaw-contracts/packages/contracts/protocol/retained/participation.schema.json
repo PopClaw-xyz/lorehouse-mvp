@@ -1,0 +1,259 @@
+{
+  "$schema": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "ParticipationDescriptor v1 (JSON rendering)",
+  "description": "JSON/tool-boundary rendering of the proto ParticipationDescriptor (world_interaction.proto \u00a73). Delivered ONLY inside an authenticated ActionResult or the verified private state wrapper \u2014 never parsed out of business bodies or guide prose. uint64 values (revision) are canonical decimal strings; two-layer bounds: this schema caps shape (max 20 digits, no leading zeros), the runtime additionally rejects values above 18446744073709551615 and JSON numbers. Cross-field rules (reference integrity, window bounds, duplicate ids) are semantic-layer invariants listed in state-transitions.md \u00a75.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "house": {
+      "$ref": "#/$defs/house_binding"
+    },
+    "actor_id": {
+      "$ref": "#/$defs/popclaw_id"
+    },
+    "participation_id": {
+      "$ref": "#/$defs/opaque_id"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "maxLength": 20,
+      "description": "Monotonic within the house incarnation; equal revision with different descriptor content is a protocol conflict."
+    },
+    "window": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "opens_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "closes_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "opens_at",
+        "closes_at"
+      ],
+      "additionalProperties": false
+    },
+    "action_groups": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "intent_kinds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/kind"
+            }
+          },
+          "control_reset": {
+            "enum": [
+              "window",
+              "explicit"
+            ]
+          },
+          "channels": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "intent",
+                "direct_message"
+              ]
+            },
+            "description": "Egress channels this group's expression budget covers. Absent = intent-only. Including \"direct_message\" lets the coordinator's existing authorized DM path spend this group's shared outbound budget and response-slot dedupe key under the same participation gate (state-transitions.md \u00a75) \u2014 the typed binding for autonomous direct DM, without inventing a manifest intent kind."
+          }
+        },
+        "required": [
+          "id",
+          "intent_kinds",
+          "control_reset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "opportunities": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "source_event_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Required for the source-arrival trigger form; a validated event CID. Evidence reference, never an instruction."
+          },
+          "action_group_id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "budget_group_id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "budget_window_id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "not_before": {
+            "$ref": "#/$defs/timestamp"
+          },
+          "expires_at": {
+            "$ref": "#/$defs/timestamp"
+          },
+          "dedupe_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_./:-]{1,128}$",
+            "description": "Stable business-derived key; survives transport re-encryption and replay; never reset by a descriptor update."
+          },
+          "channels": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "intent",
+                "direct_message"
+              ]
+            },
+            "description": "C2 per-opportunity egress qualification; absent = intent-only. Effective egress intersects the owning group's channels: autonomous direct DM requires direct_message in BOTH the group and this opportunity. DM-ONLY opportunities (channels == [\"direct_message\"]) are valid; intent execution on such an opportunity is refused at the gate and the group DM permission still applies. Slot semantics per descriptor dm_response_slot_key: when the window declares a slot key, every DM-qualified opportunity (installed or later added) must carry exactly that one-use dedupe key \u2014 multiple DM-qualified opportunities MAY intentionally share that declared key (the only permitted dedupe duplicate); when absent, distinct keys are allowed, still bounded by shared budgets/ceilings."
+          }
+        },
+        "required": [
+          "id",
+          "action_group_id",
+          "budget_group_id",
+          "budget_window_id",
+          "not_before",
+          "expires_at",
+          "dedupe_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "budgets": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "window_id": {
+            "$ref": "#/$defs/opaque_id"
+          },
+          "resource": {
+            "enum": [
+              "agent_turn",
+              "outbound_message",
+              "owner_notice"
+            ]
+          },
+          "suggested_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "id",
+          "window_id",
+          "resource",
+          "suggested_limit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "dm_response_slot_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_./:-]{1,128}$",
+      "description": "C2 OPTIONAL declared shared DM response slot for this window. When present, every DM-qualified opportunity of the window (installed or added later) must carry exactly this one-use dedupe key (semantic-layer invariant); the declaration is immutable for the window once trusted-installed \u2014 removal, replacement or new-ID bypass is RESPONSE_SLOT_IMMUTABLE. When absent, per-opportunity-qualified DMs may use distinct dedupe keys, still bounded by shared budgets/ceilings."
+    }
+  },
+  "required": [
+    "version",
+    "house",
+    "actor_id",
+    "participation_id",
+    "revision",
+    "window",
+    "action_groups",
+    "opportunities",
+    "budgets"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "house_binding": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "pattern": "^https?://[a-z0-9.-]+(:[0-9]{1,5})?$",
+          "maxLength": 253,
+          "description": "Canonical origin: lowercase scheme and host, no trailing slash, no path, no userinfo. demo.loreshow.com is the future demo domain; never contacted by contract work."
+        },
+        "house_key": {
+          "$ref": "#/$defs/popclaw_id"
+        },
+        "incarnation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        }
+      },
+      "required": [
+        "origin",
+        "house_key",
+        "incarnation"
+      ],
+      "additionalProperties": false
+    },
+    "popclaw_id": {
+      "type": "string",
+      "pattern": "^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$",
+      "description": "Base58 (bitcoin alphabet) encoding of a 32-byte Ed25519 public key, as used for popclaw_id. Length window 32\u201344 covers leading-zero keys (each leading zero byte encodes as one '1'); the exact 'decodes to exactly 32 bytes' check is semantic-layer (the semantic validator), since no regex can express it."
+    },
+    "opaque_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_./:-]{1,128}$"
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+      "maxLength": 64,
+      "description": "House-namespaced vocabulary kind, e.g. a house slug prefix plus verb. Opaque to the protocol; no per-kind code branches anywhere in plugin/server core."
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "maxLength": 20,
+      "description": "RFC 3339 UTC, whole seconds, explicit Z. Calendar validity is a semantic-layer check."
+    }
+  }
+}

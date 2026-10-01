@@ -1,0 +1,32 @@
+{
+  "name": "@popclaw/algorithms",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./world/*": "./dist/world/*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@popclaw/contracts": "workspace:*",
+    "@noble/hashes": "^1.5.0",
+    "protobufjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.9.0",
+    "tweetnacl": "^1.0.3",
+    "bs58": "^5.0.0"
+  }
+}

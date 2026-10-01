@@ -1,0 +1,5 @@
+protobuf==6.33.6
+cryptography==46.0.5
+cffi==2.0.0
+pycparser==2.23
+typing_extensions==4.16.0

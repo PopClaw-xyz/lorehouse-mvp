@@ -1,0 +1,343 @@
+{
+  "$schema": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "Structured private message wrapper v1",
+  "description": "Versioned JSON envelope carried INSIDE existing encrypted DM UTF-8 text (nacl.box ciphertext), never a binary DM and never a public HouseEvent. Parsed only after envelope signature/CID/recipient validation AND decryption, and only when the signer is authorized by THIS receiving house's verified context (a house official producer whose HouseBinding matches the receiving house). Plain JSON from strangers or officials of a different house renders as ordinary text with no metadata privilege. Parse failures preserve original content and never crash neighboring messages. Generic authenticated metadata (house/participation/state anchor) lives HERE in the wrapper \u2014 never parsed out of the business body; each optional structure is field-for-field the JSON rendering of the same-named proto message in world_interaction.proto \u00a71/\u00a73/\u00a74.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "popclaw.world-message"
+    },
+    "version": {
+      "const": 1
+    },
+    "kind": {
+      "$comment": "House-namespaced message kind, e.g. '<slug>.message'. The manifest's event_kinds declare per-kind body schemas under this same profile.",
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+      "maxLength": 64
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "capability_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 hex of the exact manifest bytes whose declared schema governs this message. Binds the message to one capability revision."
+    },
+    "message_id": {
+      "$comment": "Stable public-or-private message id used for durable dedup and conversation threading. A retry MUST persist identical encrypted envelope bytes; a re-encrypted duplicate converges here.",
+      "$ref": "#/$defs/opaque_id"
+    },
+    "conversation_ref": {
+      "$ref": "#/$defs/opaque_id"
+    },
+    "delivery_class": {
+      "enum": [
+        "conversation",
+        "receipt",
+        "state"
+      ],
+      "$comment": "conversation: feed local conversation/inbox and bounded participation policy; coalesce owner summaries per local permission. receipt: correlate readable receipts; machine action success still comes only from signed ActionResult, never from summary; no per-receipt L1. state: private state/card stored for local private reading; no automatic L1."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 280,
+      "$comment": "Readable one-line rendering aid. Never authority: no classification, status or success may be inferred from it."
+    },
+    "house": {
+      "$comment": "Optional for conversation/receipt; REQUIRED for delivery_class=state. Binding of the SENDING house (official signer must belong to exactly this binding). JSON rendering of proto HouseBinding.",
+      "$ref": "#/$defs/house_binding"
+    },
+    "participation": {
+      "$comment": "Optional top-level authenticated ParticipationDescriptor (JSON rendering of the proto message, i.e. #/$defs of participation.schema.json's root shape). The ONLY sanctioned way a state-class message installs/updates a descriptor. Semantically identical to the descriptor arriving in a signed ActionResult; both must satisfy the same monotonic-merge rules (state-transitions.md \u00a74).",
+      "$ref": "#/$defs/participation_descriptor"
+    },
+    "state_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_./:-]{1,128}$",
+      "$comment": "Optional generic state anchor for state-class messages: which opaque state identity this card/snapshot describes. Present \u21d2 state_revision must also be present. Replacement semantics (same state_ref only, by revision) are those of state-transitions.md \u00a77."
+    },
+    "state_revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$",
+      "maxLength": 20,
+      "$comment": "uint64 decimal string; runtime enforces the 2^64-1 bound (two-layer rule as in participation.schema.json)."
+    },
+    "body": {
+      "type": "object",
+      "maxProperties": 32,
+      "$comment": "Opaque business body; structure declared by the manifest's per-kind schema. The wrapper layer does not interpret it \u2014 which is exactly why every generic fact above must live in the wrapper, not here."
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "kind",
+    "schema_version",
+    "capability_revision",
+    "message_id",
+    "conversation_ref",
+    "delivery_class",
+    "summary",
+    "body"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "opaque_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_./:-]{1,128}$"
+    },
+    "house_binding": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "pattern": "^https?://[a-z0-9.-]+(:[0-9]{1,5})?$",
+          "maxLength": 253
+        },
+        "house_key": {
+          "$ref": "#/$defs/base58_pubkey"
+        },
+        "incarnation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        }
+      },
+      "required": [
+        "origin",
+        "house_key",
+        "incarnation"
+      ],
+      "additionalProperties": false
+    },
+    "base58_pubkey": {
+      "type": "string",
+      "pattern": "^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$",
+      "$comment": "Length window covers all 32-byte keys including leading-zero encodings ('1'-prefixed, down to 32 chars). The exact 'decodes to 32 bytes' check is semantic-layer (the semantic validator); a regex cannot express it."
+    },
+    "participation_descriptor": {
+      "$comment": "Inline mirror of participation.schema.json's root for self-containment; validate.mjs asserts byte-level structural parity between this $defs node and participation.schema.json so the two cannot drift.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "house": {
+          "$ref": "#/$defs/house_binding"
+        },
+        "actor_id": {
+          "$ref": "#/$defs/base58_pubkey"
+        },
+        "participation_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$",
+          "maxLength": 20
+        },
+        "window": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/opaque_id"
+            },
+            "opens_at": {
+              "$ref": "#/$defs/rfc3339"
+            },
+            "closes_at": {
+              "$ref": "#/$defs/rfc3339"
+            }
+          },
+          "required": [
+            "id",
+            "opens_at",
+            "closes_at"
+          ],
+          "additionalProperties": false
+        },
+        "action_groups": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/action_group"
+          }
+        },
+        "opportunities": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/opportunity"
+          }
+        },
+        "budgets": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/budget"
+          }
+        },
+        "dm_response_slot_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_./:-]{1,128}$"
+        }
+      },
+      "required": [
+        "version",
+        "house",
+        "actor_id",
+        "participation_id",
+        "revision",
+        "window",
+        "action_groups",
+        "opportunities",
+        "budgets"
+      ],
+      "additionalProperties": false
+    },
+    "action_group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "intent_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+            "maxLength": 64
+          }
+        },
+        "control_reset": {
+          "enum": [
+            "window",
+            "explicit"
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "intent",
+              "direct_message"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "intent_kinds",
+        "control_reset"
+      ],
+      "additionalProperties": false
+    },
+    "opportunity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "source_event_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "action_group_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "budget_group_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "budget_window_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "not_before": {
+          "$ref": "#/$defs/rfc3339"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/rfc3339"
+        },
+        "dedupe_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_./:-]{1,128}$"
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "intent",
+              "direct_message"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "action_group_id",
+        "budget_group_id",
+        "budget_window_id",
+        "not_before",
+        "expires_at",
+        "dedupe_key"
+      ],
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "window_id": {
+          "$ref": "#/$defs/opaque_id"
+        },
+        "resource": {
+          "enum": [
+            "agent_turn",
+            "outbound_message",
+            "owner_notice"
+          ]
+        },
+        "suggested_limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "id",
+        "window_id",
+        "resource",
+        "suggested_limit"
+      ],
+      "additionalProperties": false
+    },
+    "rfc3339": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "maxLength": 20
+    }
+  }
+}

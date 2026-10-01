@@ -1,0 +1,193 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "public_stream": {
+      "$ref": "#/$defs/public_stream"
+    },
+    "actions": {
+      "$ref": "#/$defs/actions"
+    },
+    "private_messages": {
+      "$ref": "#/$defs/private_messages"
+    },
+    "execution_closure": {
+      "$ref": "#/$defs/execution_closure"
+    },
+    "guide": {
+      "$ref": "#/$defs/guide"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "Public envelope 01 interaction board",
+  "anyOf": [
+    {
+      "required": [
+        "public_stream"
+      ]
+    },
+    {
+      "required": [
+        "actions"
+      ]
+    },
+    {
+      "required": [
+        "private_messages"
+      ]
+    }
+  ],
+  "$defs": {
+    "public_stream": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "const": "/v1/world-stream"
+        },
+        "mode": {
+          "const": "public-v1"
+        },
+        "log_incarnation": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "maxLength": 64
+        },
+        "initial_public_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{4,64}$",
+            "minLength": 4,
+            "maxLength": 64
+          },
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "envelope_baseline": {
+          "const": "public-envelope-01"
+        }
+      },
+      "required": [
+        "endpoint",
+        "mode",
+        "log_incarnation",
+        "initial_public_scopes",
+        "envelope_baseline"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "object",
+      "properties": {
+        "status_endpoint": {
+          "const": "/v1/world-actions/status"
+        },
+        "result_authority_pubkey": {
+          "type": "string",
+          "pattern": "^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "snapshot",
+              "subscription",
+              "participation"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "status_endpoint",
+        "result_authority_pubkey",
+        "kinds",
+        "attachments"
+      ],
+      "additionalProperties": false
+    },
+    "private_messages": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "participation": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "version",
+        "kinds",
+        "participation"
+      ],
+      "additionalProperties": false
+    },
+    "execution_closure": {
+      "type": "object",
+      "properties": {
+        "status_endpoint": {
+          "const": "/v1/world-actions/closure-status"
+        }
+      },
+      "required": [
+        "status_endpoint"
+      ],
+      "additionalProperties": false
+    },
+    "guide": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "const": "/v1/guide.md"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_./:-]{1,128}$",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "revision"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

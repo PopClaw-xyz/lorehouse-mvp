@@ -1,0 +1,40 @@
+syntax = "proto3";
+package popclaw.invite;
+
+// Applicant-signed invite request event payload.
+// Published as EventEnvelope { body: invite_request }.
+// Outer signer_pubkey MUST match actor.popclaw_id (self-signed).
+message InviteRequest {
+  string platform = 1;                         // e.g. "x"
+  string handle = 2;                           // account handle, no leading '@'
+  string nickname = 3;                         // optional display-name hint
+  // Invite landing URL for an external post or same-author reply. Empty implicit
+  // default is omitted from canonical bytes.
+  string landing_url  = 4;
+  // Account replacement intent. true permits another invite for an already verified
+  // platform; replace the existing binding only after the new account verifies. Omit
+  // false.
+  bool replace = 5;
+  // Optional platform-native proof post URL. Nonempty selects direct lookup by post
+  // ID; empty selects search discovery. Omit the empty default.
+  string proof_url = 6;
+  // Explicit consent to synchronize future posts. Default false means no mirroring.
+  // Synchronization is forward-only and never backfills historical posts. Omit false.
+  bool mirror_optin = 7;
+}
+
+// LoreHouse-signed milestone event when an invite reaches APPROVED quorum.
+// Published as EventEnvelope { body: invite_verified }, actor = lore-house.
+message InviteVerified {
+  string task_id = 1;                          // UUIDv4 of the underlying quest
+  bytes applicant_popclaw_id = 2;              // raw 32-byte pubkey; base58 form is in actor.popclaw_id on lore-house's wrapping envelope
+  string platform = 3;
+  string handle = 4;
+  uint32 approve_count = 5;
+  uint32 reject_count = 6;
+  int64 follower_count = 7;  // follower count ranger captured at verify time; 0 = not provided
+  // same platform-native immutable account id captured by ranger at
+  // verify time. "" if unknown. Proto3 default elides — existing InviteVerified
+  // CIDs unchanged .
+  string account_id = 8;  // same; captured by ranger at verify time
+}

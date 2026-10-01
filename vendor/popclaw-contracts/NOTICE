@@ -1,0 +1,12 @@
+PopClaw public contract candidate — public-envelope-01
+
+This candidate contains PopClaw protocol source, generated bindings, a schema
+descriptor, test vectors, tests, and implementation documentation.
+
+Third-party components retain their respective licenses. TypeScript bindings
+are generated with protobufjs-cli 1.1.3 and protobufjs 7.6.6. Rust bindings use
+prost-build 0.13.5. The schema descriptor is generated with protoc 34.1.
+
+External dependency packages and environments are not bundled in this source
+candidate. See THIRD-PARTY.md and third-party-licenses/ for component attribution,
+retained upstream license and notice texts, and the scope of this archive.

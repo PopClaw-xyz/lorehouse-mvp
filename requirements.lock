@@ -1,0 +1,13 @@
+# Runtime dependencies for PopClaw Ranger Map (exact closure, Python 3.12+).
+# Installed with: python -m pip install -r requirements.lock
+anyio==4.15.1
+cffi==2.1.1
+click==8.5.0
+cryptography==46.0.5
+h11==0.16.0
+idna==3.19
+protobuf==6.33.6
+pycparser==3.0
+starlette==1.6.0
+typing_extensions==4.16.0
+uvicorn==0.52.4

@@ -1,0 +1,28 @@
+{
+  "name": "@popclaw/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./descriptor": "./dist/generated/descriptor.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ../../../../scripts/copy-generated.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "protobufjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.9.0"
+  }
+}

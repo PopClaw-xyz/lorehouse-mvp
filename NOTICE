@@ -1,0 +1,12 @@
+PopClaw Ranger Map
+Copyright 2026 PopClaw AI Limited
+
+This product includes software developed by PopClaw AI Limited
+(https://popclaw.xyz).
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product bundles a controlled copy of the PopClaw public contract source
+bundle under vendor/popclaw-contracts/, which carries its own NOTICE and
+third-party attribution. Other third-party components retain their own
+licenses; see THIRD-PARTY-NOTICES.md.

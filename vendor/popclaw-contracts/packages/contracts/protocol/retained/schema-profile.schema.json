@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "PopClaw world-interaction JSON Schema profile v1 (payload-schema validator)",
+  "description": "TWO DISTINCT LEVELS \u2014 do not conflate them. (Meta level) THIS document is an ordinary JSON Schema (draft 2020-12) whose ROOT validates PAYLOAD SCHEMA DOCUMENTS: house manifest event/intent schemas and this bundle's payload schemas (board/action schemas, participation.schema.json, private-message.schema.json). Validating a payload schema against this root is mechanical. (Payload level) `#/$defs/schema` is the node that defines the pinned payload subset itself; a document passes iff every node conforms to it. The meta level necessarily uses a wider fixed keyword set (propertyNames, schema-valued additionalProperties) and is NOT itself payload-conformant \u2014 it is verified instead by three mechanical audit assertions in the schema conformance checks (every keyword reachable from #/$defs/schema is inside the payload whitelist; every $ref target exists; pattern grammar rules are checkable) plus review. Payload semantics: JSON parsed as bounded UTF-8 with duplicate-key rejection before any schema check; unsupported keywords/values reject the affected capability at activation \u2014 never silently ignored; total nesting depth of payload documents bounded to 8 by the validator (not expressible in-language); regex patterns restricted to the lookaround-free, backreference-free subset shared by JS RegExp and the Rust regex crate; numbers are integers only; uint64 values are decimal strings.",
+  "$ref": "#/$defs/schema",
+  "$defs": {
+    "schema": {
+      "$comment": "One payload-schema node. Allowed keywords exactly: type, properties, required, additionalProperties(false only), items, minItems, maxItems, uniqueItems(true only), maxProperties, enum, const, minimum, maximum, exclusiveMinimum, exclusiveMaximum, minLength, maxLength, pattern, allOf, anyOf, oneOf, $ref(internal #/$defs/... only), $defs, $schema(annotation), plus annotations title/description/$comment.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "$comment": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "$schema": {
+          "type": "string",
+          "const": "https://popclaw.example/world-interaction/schema-profile/v1",
+          "$comment": "Annotation pinning this profile on payload documents; it never selects a dialect \u2014 the profile is pinned by the contract."
+        },
+        "type": {
+          "enum": [
+            "object",
+            "array",
+            "string",
+            "boolean",
+            "integer"
+          ]
+        },
+        "properties": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "$comment": "Property NAME strings validated as strings (parent review: names were wrongly typed as objects, which rejected every name under real validators).",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/schema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "additionalProperties": {
+          "enum": [
+            false
+          ]
+        },
+        "items": {
+          "$ref": "#/$defs/schema"
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "uniqueItems": {
+          "enum": [
+            true
+          ]
+        },
+        "maxProperties": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "const": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 256
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "exclusiveMinimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "exclusiveMaximum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\n\\r]*$",
+          "$comment": "Grammar (no lookaround/backrefs) is a validator-side semantic check; a pattern failing it rejects the capability."
+        },
+        "allOf": {
+          "$ref": "#/$defs/composition"
+        },
+        "anyOf": {
+          "$ref": "#/$defs/composition"
+        },
+        "oneOf": {
+          "$ref": "#/$defs/composition"
+        },
+        "$ref": {
+          "type": "string",
+          "pattern": "^#/(\\$defs/)?[A-Za-z_][A-Za-z0-9_]{0,63}$",
+          "maxLength": 80,
+          "$comment": "Internal, root-anchored, into $defs only. External/absolute/document-relative $ref is outside the profile."
+        },
+        "$defs": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/schema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "composition": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/schema"
+      }
+    }
+  }
+}

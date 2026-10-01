@@ -1,0 +1,66 @@
+syntax = "proto3";
+package popclaw.quest;
+
+enum QuestKind {
+  QUEST_KIND_UNSPECIFIED = 0;
+  QUEST_KIND_VERIFY_INVITE = 1;
+  QUEST_KIND_SCRAPE_CONTENT = 2;
+}
+
+enum QuestOutcome {
+  QUEST_OUTCOME_UNSPECIFIED = 0;
+  QUEST_OUTCOME_APPROVE = 1;
+  QUEST_OUTCOME_REJECT = 2;
+  QUEST_OUTCOME_ABSTAIN = 3;
+}
+
+// Kind-specific sub-payload for VERIFY_INVITE quests.
+message VerifyInvitePayload {
+  string platform = 1;
+  string handle = 2;
+  bytes applicant_popclaw_id = 3;              // raw 32-byte pubkey
+  string expected_sigil = 4;                   // 8-char lowercase Crockford base32
+  // Forwarded proof_url: nonempty selects direct platform post lookup; empty selects
+  // search discovery.
+  string proof_url = 5;
+}
+
+// Kind-specific sub-payload for SCRAPE_CONTENT quests.
+message ScrapeContentPayload {
+  string platform = 1;
+  string handle = 2;
+  uint64 since_timestamp = 3;                  // Unix epoch seconds; 0 = from beginning
+  uint32 max_items = 4;                        // Scope B fixed 20
+}
+
+// LoreHouse-signed quest dispatch event.
+// Assignee popclaw_ids are on the outer EventEnvelope.target.target_ids.
+// Published as EventEnvelope { body: quest_dispatch }, actor = lore-house.
+message QuestDispatch {
+  string task_id = 1;                          // UUIDv4
+  QuestKind kind = 2;
+  uint64 expires_at = 3;                       // Unix epoch seconds
+  oneof quest {
+    VerifyInvitePayload verify_invite = 10;
+    ScrapeContentPayload scrape_content = 11;
+  }
+}
+
+// Verifier-signed quest result event.
+// Outer signer_pubkey MUST be one of the assignees from quest_dispatch.target_ids.
+message QuestResult {
+  string task_id = 1;
+  QuestOutcome outcome = 2;
+  bytes evidence_hash = 3;                     // SHA-256 of fetched page bytes
+  bytes evidence_sample = 4;                   // Strategy Z audit sample, ≤16KB
+  string reason = 5;                           // optional; used for REJECT/ABSTAIN diagnostics
+  // Platform-native stable account id captured by the ranger during
+  // verify (X rest_id / TikTok sec_uid / YT channel id / IG pk).
+  // proto3-default "" means "not captured" (older rangers without this field).
+  string account_id = 6;
+  // Verification-time snapshot reported with APPROVE. Omit implicit defaults to
+  // preserve canonical bytes.
+  int64 follower_count = 7;
+  string avatar_url = 8;
+  string bio = 9;
+}

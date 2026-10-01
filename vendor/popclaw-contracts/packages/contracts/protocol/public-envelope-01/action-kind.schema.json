@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z0-9]{1,24}(\\.[a-z0-9_]{1,24}){1,2}$",
+      "maxLength": 64
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "transport": {
+      "enum": [
+        "typed",
+        "house"
+      ]
+    },
+    "signer": {
+      "enum": [
+        "user",
+        "official"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "params_schema": {
+      "type": "object",
+      "$comment": "Meta-validate this embedded schema against the unchanged pinned schema profile; this node is not a bypass."
+    },
+    "result_schema": {
+      "type": "object",
+      "$comment": "Meta-validate this embedded schema against the unchanged pinned schema profile; this node is not a bypass."
+    },
+    "purpose": {
+      "enum": [
+        "join",
+        "snapshot"
+      ]
+    },
+    "result_attachments": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "snapshot",
+              "subscription",
+              "participation"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "required_on_success": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "snapshot",
+              "subscription",
+              "participation"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "allowed",
+        "required_on_success"
+      ],
+      "additionalProperties": false
+    },
+    "consistency": {
+      "enum": [
+        "none",
+        "stream",
+        "snapshot_barrier"
+      ]
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "transport",
+    "signer",
+    "description",
+    "params_schema",
+    "result_schema",
+    "result_attachments",
+    "consistency"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://popclaw.example/world-interaction/schema-profile/v1",
+  "title": "Only intent_kinds rows explicitly selected by actions.kinds"
+}
