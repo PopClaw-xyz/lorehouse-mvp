@@ -37,6 +37,9 @@ AUDIENCE_MISMATCH = 9
 IDEMPOTENCY_CONFLICT = 10
 
 _REQUEST_MAX_WINDOW_SECONDS = 600
+# Request timestamps come from the signing host's clock. Permit only a small
+# bounded future issue time; expiry remains a strict server-clock deadline.
+_REQUEST_CLOCK_SKEW_SECONDS = 30
 
 
 @dataclass
@@ -261,7 +264,9 @@ def handle_session_request(store, identity: HouseIdentity, state, body: bytes
                        "request signature invalid")
 
     now = _now()
-    if core.issued_at > now or now >= core.expires_at:
+    if (core.issued_at > now + _REQUEST_CLOCK_SKEW_SECONDS
+            or now >= core.expires_at
+            or core.expires_at <= core.issued_at):
         return _reject(store, identity, state, core, AUTH_INVALID,
                        "request time window invalid")
     if core.expires_at - core.issued_at > _REQUEST_MAX_WINDOW_SECONDS:

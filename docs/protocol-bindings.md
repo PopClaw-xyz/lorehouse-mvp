@@ -416,6 +416,23 @@ unsupported).
 
 ## Inbox token representation and the legacy lane (G0 clarification)
 
+Session request times are signed UTC epoch seconds from the requesting host.
+This reference server permits `issued_at` to be at most **30 seconds ahead**
+of its own clock, so ordinary cross-host clock differences do not reject an
+otherwise authenticated enter or natural renew. This is a bounded server
+admission policy, not a change to the sealed wire or signing domain. It does
+not extend `expires_at`: the request is rejected at or after that exact
+server-clock deadline. The signed interval must be positive and at most
+600 seconds; a future issue time never exempts that cap.
+
+The skew allowance changes no signature, identity/key, origin, target-session,
+installation, fence or lease check. Renewal still requires a live existing
+session and extends its lease from **server now**, not from the client's
+future timestamp; it never creates a new generation. Tests cover small skew
+and the 30-second boundary, reject 31 seconds, exact expiry, reversed/empty
+or oversized windows, and preserve the signature/identity/audience/session
+and expired-lease refusals. No repeated login is used as a renewal workaround.
+
 The `0.1.0-public-envelope-01` public contract (unchanged through `.01.5`) treats
 `AckCore.inbox_read_token` as an **opaque string** (house_session.proto
 specifies only: short-lived, house-signed, bound to canonical audience,
