@@ -1,8 +1,8 @@
 {
-  "protocol_version": "0.1.0-public-envelope-01.6",
+  "protocol_version": "0.1.0-public-envelope-01.7",
   "envelope_baseline": "public-envelope-01",
   "digest_algorithm": "sha256(sorted(file_sha256 + \"  \" + relative_path + \"\\n\"))",
-  "bundle_sha256": "d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b",
+  "bundle_sha256": "f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec",
   "files": [
     {
       "path": ".github/workflows/protocol-candidate.yml",
@@ -34,7 +34,7 @@
     },
     {
       "path": "SOURCE-PROVENANCE.json",
-      "sha256": "2001fc5e1a3355adb35fa95a4e87d9a965a8b60b48bc065782bf7cdc0397131a"
+      "sha256": "45f35de85e4729494454f915b1665e6339b3a6694c842285f9630287336db0da"
     },
     {
       "path": "THIRD-PARTY.md",
@@ -42,15 +42,15 @@
     },
     {
       "path": "TOOLCHAIN.json",
-      "sha256": "49f433f618feb2e1f618344ecfcbc54aa0645e49e2d7343ac0fce0071bc31264"
+      "sha256": "2a85a9a696eb54d92856faeb1ec6594461ae8faeaedeae20add542571fda5942"
     },
     {
       "path": "package.json",
-      "sha256": "5ec9b6b27ec9f161b7d47f8cd378fa301c7de58cded4f152bf321b942405a43f"
+      "sha256": "6944787ced8193a4deb045c825e0afc91d72a9aac6badfa7f81dd6074390f3b0"
     },
     {
       "path": "packages/contracts/README.md",
-      "sha256": "2f17ff19fceaa8074c067c26d732269e1162d806d92e559a3e07d1a8304c1fc7"
+      "sha256": "9d4e6b0f58beeb1ebe56294e2f76429266a775128412fb66e41010f12c7e5206"
     },
     {
       "path": "packages/contracts/crates/algorithms/Cargo.toml",
@@ -157,6 +157,10 @@
       "sha256": "95b600bad83cfdcf3dc1ec843cf940646e817571f51accd82e768a0676273c98"
     },
     {
+      "path": "packages/contracts/fixtures/relation-read-v2-vectors.json",
+      "sha256": "b24135bc1904ac74b116b0dd6353852c9380a86ba29376e4592dfefcc74d6397"
+    },
+    {
       "path": "packages/contracts/fixtures/retained-signing-golden.json",
       "sha256": "ad910fd32e1f0af1c14fafc08c1d694cc090e0d51c1732a1da5155e4fbc96dbb"
     },
@@ -202,11 +206,11 @@
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/BASELINE.md",
-      "sha256": "3b90823868dbe542e436f598d815adf6462a10a29f0673e7e61cbd63d0196eb9"
+      "sha256": "9063005e567106b3976e2727643738983bfe6e308be6b027e8151704624359cc"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/CHANGES.md",
-      "sha256": "8cbdfa1b3ce663be52c05b7e0e5d90dc6f13e436002d33b2e915cf5cb5379327"
+      "sha256": "edbef7f26c65333a8e4064d82509c27395880f5a61524d286be2650250fc01f9"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/CONSUMPTION.md",
@@ -214,7 +218,7 @@
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/IMPLEMENTERS.md",
-      "sha256": "8af8c8144197f68de2b07336878a47451216db2497b5d11cf98c6e284c8781be"
+      "sha256": "90a178161afc4b0412a82a0e29ff50850b875ff60e4e9211cbdef4dfe26ba43e"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/LIMITS.md",
@@ -225,12 +229,16 @@
       "sha256": "1fc0a73ab5c34db337e2f16291efb0997d432a1900ed44757714ddb93695929f"
     },
     {
+      "path": "packages/contracts/protocol/public-envelope-01/READ-AUTH.md",
+      "sha256": "bd55a5a4782e05ebadeefa8afe56168ff1ae6d059b77d9e1304b834119d288e7"
+    },
+    {
       "path": "packages/contracts/protocol/public-envelope-01/RECEIPTS.md",
       "sha256": "61e1b6c954f6fe93fbf9eb3809759c3ee9f097f7b0b182dcb1723857282b5ed9"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/RELATIONS.md",
-      "sha256": "342ca96cf8019867ff6b55b87c2f51fe59dfe2d9a81e860bbe4fcf7d68d7cef9"
+      "sha256": "b3c13389caba17768f22152e952fe8e6ae6f63f089b12f9331ae85af70be1f06"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/RUNTIME.md",
@@ -238,11 +246,11 @@
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/SIGNING.md",
-      "sha256": "513b1f5a9892c44f5f00f6818816f6065664e7842095711bfea012faf94b375d"
+      "sha256": "45b26d41e57d6c747fc77e2e14821c8b34a47aee1ea77e106c97c20d6ecc092b"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/SPEC.md",
-      "sha256": "3384ea4ab49f932fc26a09c33ecf2567b022f681fee08e90d51924b29429651f"
+      "sha256": "3bda31e7adefb6b1667a2d658ee0a05abccaac020c35033c02367fb7837a547b"
     },
     {
       "path": "packages/contracts/protocol/public-envelope-01/TRUST.md",
@@ -498,7 +506,7 @@
     },
     {
       "path": "scripts/write-manifest.py",
-      "sha256": "74094e8355e1b333898a7b04881843e367541772b706bc0e9bbfb44c9b363bfb"
+      "sha256": "7aecaab9e6608dc04ea3037c2997738782eaefa6ee601fb7e02f9bfe6deb0ef8"
     },
     {
       "path": "third-party-licenses/javascript/ajv-8.18.0/LICENSE",

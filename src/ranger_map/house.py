@@ -28,7 +28,7 @@ from . import wire
 from .keys import HouseIdentity, digest_bytes, new_incarnation
 
 GUIDE_RESOURCE = Path(__file__).parent / "static" / "house-guide.md"
-GUIDE_REVISION = "rangermap-guide-1"
+GUIDE_REVISION = "rangermap-guide-2"
 INITIAL_PUBLIC_SCOPES = ["rangermap"]
 SLUG = "rangermap"
 NAME = "PopClaw Ranger Map"
@@ -191,7 +191,7 @@ class HouseState:
 
 
 def _build_manifest(identity: HouseIdentity, log_incarnation: str,
-                    guide_digest: str) -> bytes:
+                    guide_digest: str, guide_revision: str = GUIDE_REVISION) -> bytes:
     declared_kinds = [row["kind"] for row in [CHECK_IN_KIND_ROW]]
     manifest = {
         "name": NAME,
@@ -199,6 +199,8 @@ def _build_manifest(identity: HouseIdentity, log_incarnation: str,
         "official_ids": [identity.house_key_id],
         "guide_url": "/v1/guide.md",
         "intent_kinds": [CHECK_IN_KIND_ROW],
+        "relations": {"ordered": 1},
+        "read_auth": {"schemes": ["popclaw-identity-read-v2"]},
         "house_session": {
             "endpoint": "/v1/house-session",
             "version": 1,
@@ -225,7 +227,7 @@ def _build_manifest(identity: HouseIdentity, log_incarnation: str,
             "guide": {
                 "path": "/v1/guide.md",
                 "sha256": guide_digest,
-                "revision": GUIDE_REVISION,
+                "revision": guide_revision,
             },
         },
     }
@@ -363,14 +365,29 @@ def load_or_setup(store, identity: HouseIdentity, origin: str) -> HouseState:
     )
 
 
-def restore(store, identity: HouseIdentity, state: HouseState) -> HouseState:
+def bundled_guide() -> bytes:
+    """Validate the fixed package guide before any maintenance mutation."""
+    try:
+        content = GUIDE_RESOURCE.read_bytes()
+        text = content.decode('utf-8')
+    except (OSError, UnicodeError) as exc:
+        raise HouseStateError('bundled guide is unreadable or not UTF-8') from exc
+    if not text.strip() or '\0' in text or len(content) > wire.L_GUIDE_MAX_BYTES:
+        raise HouseStateError('bundled guide is empty, invalid or exceeds the guide size limit')
+    return content
+
+
+def restore(store, identity: HouseIdentity, state: HouseState, *,
+            refresh_guide: bool = False) -> HouseState:
     """Explicit house restore/rebuild: rotate both incarnations, fence all
     sessions and inbox tokens, retire ids forever, rebuild the manifest.
 
     Never invoked automatically (no HTTP route): an operator runs this via
     ``tools/house_admin.py --restore`` with the server stopped.
     """
-    guide_bytes = state.guide_bytes
+    guide_bytes = bundled_guide() if refresh_guide else state.guide_bytes
+    guide_revision = (GUIDE_REVISION if refresh_guide else
+                      state.manifest_json['world_interaction']['guide']['revision'])
     with store.write_tx():
         retired_server = json.loads(store.get_meta(_META_RETIRED_SERVER) or "[]")
         retired_logs = json.loads(store.get_meta(_META_RETIRED_LOGS) or "[]")
@@ -378,21 +395,30 @@ def restore(store, identity: HouseIdentity, state: HouseState) -> HouseState:
         retired_logs.append(store.get_meta(_META_LOG_INCARNATION))
         new_server = new_incarnation("rmserver")
         new_log = new_incarnation("rmlog")
+        manifest = _build_manifest(identity, new_log, digest_bytes(guide_bytes), guide_revision)
+        if len(manifest) > wire.L_MANIFEST_MAX_BYTES:
+            raise HouseStateError('rebuilt manifest exceeds the manifest size limit')
+        validate_action_declarations(json.loads(manifest))
         store.set_meta(_META_RETIRED_SERVER, json.dumps(retired_server))
         store.set_meta(_META_RETIRED_LOGS, json.dumps(retired_logs))
         store.set_meta(_META_SERVER_INCARNATION, new_server)
         store.set_meta(_META_LOG_INCARNATION, new_log)
         store.set_meta(
             _META_MANIFEST,
-            _build_manifest(identity, new_log, digest_bytes(guide_bytes)).decode(
-                "utf-8"
-            ),
+            manifest.decode("utf-8"),
         )
+        store.set_meta(_META_GUIDE, guide_bytes.decode('utf-8'))
         # Fence every live session; the house_revision counter stays monotonic
         # (fences are never reused, even across restore).
         store.execute("UPDATE sessions SET active = 0, closed_ms = ?"
                       " WHERE active = 1", (store.clock_ms(),))
         store.execute("UPDATE inbox_tokens SET revoked = 1 WHERE revoked = 0")
+        generation = int(store.get_meta("personal_generation")) + 1
+        store.set_meta("personal_generation", str(generation))
+        # Retain exact originals, recipient positions and counters. Published
+        # obligations must stay reachable; relation snapshots do not recover
+        # DMs. Pending obligations append after this preserved committed prefix.
+        store.execute("UPDATE personal_log SET generation=?", (generation,))
     return load_or_setup(store, identity, state.origin)
 
 

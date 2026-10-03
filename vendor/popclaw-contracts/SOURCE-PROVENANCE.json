@@ -1,9 +1,9 @@
 {
-  "protocol_version": "0.1.0-public-envelope-01.6",
+  "protocol_version": "0.1.0-public-envelope-01.7",
   "description": "Provenance identifiers only, not floating build dependencies or a claim that upstream private revisions are public distribution endpoints.",
   "licensing_basis": "PopClaw source Apache-2.0 declaration; third-party dependencies retain their own licenses/notices.",
   "historical_source_resolution": "The upstream_source_commit recorded below did not resolve in any object store examined while preparing 0.1.0-public-envelope-01.6, so the historical source was NOT re-verified this round. The identifier and the source hashes are kept exactly as first recorded. An unresolvable identifier is not evidence that the object never existed, and the current public commit is deliberately not substituted for it: a provenance label that names the wrong origin is worse than one that admits it could not be checked.",
-  "derived_revision": "0.1.0-public-envelope-01.6 is a derived revision of the fixed public candidate 0.1.0-public-envelope-01.5, whose bundle digest was 7956e0d9aebd7f9031193047c30322c1e5fb22a8e3788a78f3d503ad67f03bef. The changes are recorded in packages/contracts/protocol/public-envelope-01/CHANGES.md. This file records no commit of its own: a seal cannot contain the identifier of the commit that carries it, so the producing commit is named in an external receipt instead.",
+  "derived_revision": "0.1.0-public-envelope-01.7 derives from the exact protocol subtree at first-release client source efd085a4eb185866e057008a51362b0c0c2ae6c0, matching historical seal f42bf5dbe36d5979dcb0433cb23cff620b75eb5c: version 0.1.0-public-envelope-01.6, 271 members, bundle digest d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b. CHANGES.md records the identity read contract correction. This seal cannot contain its producing commit identifier; the fixed producing commit is recorded in an external receipt.",
   "source_files": [
     {
       "path": "packages/contracts/proto/event.proto",
@@ -486,5 +486,14 @@
       "derivation": "selected source; see CHANGES.md for public transformations"
     }
   ],
-  "new_files": "Baseline guards, Python descriptor bridge and serial referee, adversarial vectors, build/CI/integrity tools and implementer guidance are new candidate work. Their exact bytes are fixed by CONTRACT-MANIFEST.json."
+  "new_files": "Baseline guards, Python descriptor bridge and serial referee, adversarial vectors, build/CI/integrity tools and implementer guidance are new candidate work. Their exact bytes are fixed by CONTRACT-MANIFEST.json.",
+  "identity_read_contract_derivation": {
+    "contract": "packages/contracts/protocol/public-envelope-01/READ-AUTH.md",
+    "basis": "Existing popclaw-identity-read-v2 contract and first-release implementation, not a new protobuf or credential wire design. Historical private contract revision 6951b81ba1568601c8dbd662fbfbd58246b7dc1b, SHA-256 d92b892c99b4cf1c57341f5d21a9cc082af31aa06e9dbb4f72ac176607b653f9; historical pending/deployment notes are not new requirements. Provenance identifiers are not public distribution links.",
+    "fixture": "packages/contracts/fixtures/relation-read-v2-vectors.json",
+    "fixture_source_commit": "efd085a4eb185866e057008a51362b0c0c2ae6c0",
+    "fixture_source_path": "apps/popclaw-plugin/tests/fixtures/relation-read-v2-vectors.json",
+    "fixture_source_sha256": "813d9cce6d6fe00e949667ec964a18962186a809ec974aea14e9d0e4de7c6655",
+    "fixture_derivation": "Retain all seven positive and ten negative cases and synthetic cryptographic values exactly; replace only the contract metadata with the bundled READ-AUTH.md path. The original contract label names historical revision 9be82f685601d6518cf146fe449967dd3854f377, not the current contract hash."
+  }
 }

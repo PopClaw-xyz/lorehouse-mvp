@@ -52,3 +52,8 @@ def store_envelope(store, cid: str, payload: bytes, actor_id: str, tag: int,
         (cid, blob(payload), actor_id, tag, kind, public_eligible,
          json.dumps(scopes), now_ms),
     )
+    if tag not in (20, 21):
+        # Relation insertion invokes this only after its edge index exists.
+        # Nonrelation arrivals can prove a waiting recovery invalid now.
+        from .relations import rejudge_referencing
+        rejudge_referencing(store, cid)

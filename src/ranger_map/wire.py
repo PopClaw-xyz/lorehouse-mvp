@@ -294,9 +294,8 @@ PUBLIC_ELIGIBLE_TAGS = {11, 12, 13, 14, 15, 16, 18, 25, 27, 28, 33, 34}
 # Relation originals. A follow or unfollow is a PERSONAL event: RELATIONS.md
 # section 8 owes it to the two participants' personal streams and to no
 # public lane, and FollowType.PUBLIC describes the relation's nature rather
-# than conferring a public-stream right. This house implements no relation
-# engine at all, so it neither admits one at ingress nor delivers one on any
-# public exit. Kept separate from PUBLIC_ELIGIBLE_TAGS on purpose. The two
+# than conferring a public-stream right. Relation admission and personal
+# delivery are implemented separately from every public exit. The two
 # now agree — `.01.6` dropped these tags from the sealed predicate too —
 # but they answer different questions, and this server must not depend on
 # the sealed answer: a stored relation original has to stay a WITHHELD row

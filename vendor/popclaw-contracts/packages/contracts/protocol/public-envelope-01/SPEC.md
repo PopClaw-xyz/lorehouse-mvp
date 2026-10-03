@@ -1,11 +1,11 @@
 # Revised first-release interaction contract
 
-Version: 0.1.0-public-envelope-01.6. Candidate for implementer review; not runtime acceptance or publication approval.
+Version: 0.1.0-public-envelope-01.7. Candidate for implementer review; not runtime acceptance or publication approval.
 
 ## 1. Scope
 
 The normative set comprises this document, BASELINE.md, PUBLIC-STREAM.md,
-RECEIPTS.md, RELATIONS.md, LIMITS.md, the adjacent three schemas and the
+RECEIPTS.md, RELATIONS.md, [READ-AUTH.md](READ-AUTH.md), LIMITS.md, the adjacent three schemas and the
 retained definitions identified by relative references. BASELINE.md defines the explicit structural compatibility
 change and takes precedence over historical blanket body-retention wording.
 Supported fields retain their numeric allocation and original CID/signing rules.

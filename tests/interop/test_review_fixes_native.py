@@ -540,7 +540,7 @@ def test_f8_same_cid_different_bytes_conflicts_without_overwrite(house):
 # --- Finding 3: live inbox authorization (real server) ------------------------
 
 
-def test_f3_legacy_lane_for_never_sessioned_actor(tmp_path):
+def test_f3_old_three_segment_lane_is_refused_even_for_never_sessioned_actor(tmp_path):
     server = LiveServer(tmp_path)
     try:
         sender, recipient = Actor("Yun"), Actor("Ghost")
@@ -551,14 +551,11 @@ def test_f3_legacy_lane_for_never_sessioned_actor(tmp_path):
         message = f"inbox-read:{recipient.popclaw_id}:{now}".encode()
         legacy = (f"{recipient.popclaw_id}.{now}."
                   f"{base64.b64encode(recipient.sign(message)).decode()}")
-        reader = SseReader(
-            server.url(f"/inbox/{recipient.popclaw_id}/stream"),
-            headers={"x-popclaw-inbox-token": legacy})
         try:
-            events = reader.read_until(lambda ev: len(ev) >= 1)
-            assert events and events[0][1] == dm
-        finally:
-            reader.close()
+            open_inbox(server.url(f"/inbox/{recipient.popclaw_id}/stream"), legacy)
+            raise AssertionError('old three-segment credential must be refused')
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 401
     finally:
         server.stop()
 

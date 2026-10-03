@@ -17,12 +17,13 @@ Never infer a House from a slug when a request is bound to an exact origin/key.
 | Event/action submission | `POST /v1/push` | Binary SignedPayload, outer signature over original EventEnvelope bytes; inner canonical signature and CID |
 | Public event reception | `GET /v1/world-stream?mode=public-v1` | Anonymous, exact selection grammar in PUBLIC-STREAM.md; no credentials or Last-Event-ID |
 | Explicit ordinary legacy reception | `GET /v1/world-stream` | Existing legacy grammar; independent raw-wire guard; no complete-baseline claim without negotiation |
-| Ordinary private DM reception | `GET /inbox/:popclaw_id/stream` | Recipient authentication; named SSE `envelope` with base64 full signed EventEnvelope |
+| Ordinary private DM reception | `GET /inbox/:popclaw_id/stream` | Positively selected House session or identity-v2 authentication; named SSE `envelope` with base64 full signed EventEnvelope |
 | Declared action status | `POST /v1/world-actions/status` | Signed ActionStatusRequest; exact original request/authority context and authentic results |
-| Relation reconciliation baseline | `GET /v1/relation-snapshot` | Recipient authentication; frozen checkpoint, decimal-string 64-bit fields, House hints only |
-| Relation original bytes | `GET /v1/relation-evidence/:event_id` | Recipient authentication; verbatim stored envelope to an edge participant; uniform empty 404 |
+| Relation reconciliation baseline | `GET /v1/relation-snapshot` | Identity-v2 `relation-snapshot`; frozen checkpoint, decimal-string 64-bit fields, House hints only |
+| Relation original bytes | `GET /v1/relation-evidence/:event_id` | Identity-v2 `relation-evidence`; verbatim stored envelope to an edge participant; uniform empty 404 |
 
-The two relation routes are specified in RELATIONS.md; this candidate fixes their
+The two relation routes are specified in RELATIONS.md, with authentication in
+[READ-AUTH.md](READ-AUTH.md); this candidate fixes their
 contract and ships no server for them.
 
 Additional optional endpoint constants are in board.schema.json and the proto;
@@ -101,13 +102,24 @@ recipient stream carries complete signed envelopes, not bare DirectMessage paylo
 reject an incompatible unnamed frame rather than guessing its type. Verify the
 signed sender, recipient targeting and message bytes before interpretation.
 
-A session lane uses its verified House-issued inbox token and current lifecycle
-fence. Do not fall back to a self-signed token when that selected session lane fails.
-An independently selected legacy lane uses `x-popclaw-inbox-token` containing
-`<popclaw_id>.<UTC-seconds>.<base64-signature>`; the Ed25519 signing message is
-`inbox-read:<popclaw_id>:<UTC-seconds>`, with the established 60-second window.
-That window does not provide nonce-based replay exclusion. Reconnect authentication
-uses bounded retry/backoff; failure does not reveal another user's inbox.
+A session lane uses its verified House-issued inbox `itk` token and current
+lifecycle fence, positively selected through the trusted `house_session` declaration.
+When both schemes are declared and a current authorized session exists, inbox
+reading selects that session lane first. Missing token, expiry or a rejected token
+cannot fall back to identity signing. A residual session ID alone does not authorize
+that lane, especially on an identity-only House.
+
+An independently selected identity lane uses `popclaw-identity-read-v2`, purpose
+`inbox-stream`, and the canonical four-segment `x-popclaw-inbox-token` header in
+[READ-AUTH.md](READ-AUTH.md). It requires the current verified `read_auth` declaration,
+trusted binding and caller lifecycle gate. Old three-segment self-signing is refused;
+authentication failure never triggers anonymous access or scheme traversal. Issue
+on every reconnect, recheck authority after async work, and use bounded retry/backoff.
+Identity authentication alone has no installation/session fence; the House's route
+policy still applies. The minimal reference House requires session authentication
+for an actor with any sessions-row history. This House policy is not a federation
+rule and does not restrict independent snapshot/evidence identity purposes.
+The inclusive 60-second identity window provides no single-use replay exclusion.
 
 Existing encrypted DM uses the identity-derived X25519/NaCl box convention, with
 fresh nonces. Ciphertext and nonce are covered by the envelope signature. Empty

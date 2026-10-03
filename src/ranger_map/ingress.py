@@ -8,10 +8,8 @@ actor↔signer binding, and only then dispatch by body with per-body policy.
 Nothing here repairs, re-encodes or strips unsupported wire input; a
 structural rejection keeps the original bytes out of every projection.
 
-Relation originals (FollowDeclared/FollowRevoked) are refused here in
-full. Structural validity and delivery policy are separate questions: the
-vendored guard still decodes and validates these envelopes, and this house
-simply does not carry relation events.
+Relation originals use their own verified admission engine and are delivered
+only on the two participants' personal streams, never the public lane.
 """
 
 from __future__ import annotations
@@ -19,6 +17,7 @@ from __future__ import annotations
 import json
 
 from . import actions as actions_mod
+from . import relations
 from . import wire
 from .evidence import PushOutcome, store_envelope
 from .keys import HouseIdentity
@@ -78,31 +77,15 @@ def handle_push(store, identity: HouseIdentity, state, body: bytes) -> PushOutco
     if actor_key != bytes(wrapper.signer_pubkey):
         return _reject(400, "ACTOR_SIGNATURE_INVALID",
                        "actor does not match the signer key")
-    if envelope.lorehouse not in ("", state.origin):
+    if tag not in wire.RELATION_TAGS and envelope.lorehouse not in ("", state.origin):
         return _reject(400, "INTENT_CONTEXT_MISMATCH",
                        "envelope targets another house")
 
-    # Relation originals are refused outright, BEFORE the replay lookup: a
-    # follow or unfollow is a personal event owed to the two participants,
-    # never to a public lane (RELATIONS.md §8), and this house implements
-    # no relation engine at all. The refusal has to come first because a
-    # data root written by an earlier build can still hold one in
-    # accepted_envelopes, and the replay branch below would answer 200 with
-    # `public: true` for it — telling a client its relation is on a public
-    # lane that now withholds it. Refusing here is what makes "every
-    # relation original is refused" true without qualification.
-    #
-    # The ordered case keeps its own code because that refusal is the
-    # contract's own (§3/§9): a present `order`, even empty, activates
-    # ordered mode unconditionally, and an end that declares no
-    # `relations.ordered` capability must never degrade it to the legacy
-    # rules.
+    # A separate transactional replay lookup preserves the stored relation
+    # verdict and refuses a corrupt/foreign index instead of returning a
+    # historical public receipt for a personal original.
     if tag in wire.RELATION_TAGS:
-        if _relation_order_present(envelope, tag):
-            return _reject(400, "RELATION_ORDER_UNSUPPORTED",
-                           "this house does not declare relations.ordered")
-        return _reject(400, "RELATION_UNSUPPORTED",
-                       "this house does not carry relation events")
+        return relations.accept(store, identity, state, payload, envelope, cid, tag)
 
     # Idempotent replay of an already-accepted event: same bytes, same
     # outcome, never a second business effect.
@@ -244,5 +227,7 @@ def _accept_direct_message(store, payload: bytes, envelope, cid: str,
         store_envelope(store, cid, payload, envelope.actor.popclaw_id, 26,
                         "direct_message", 0, [], now_ms)
         seq = store.dm_append(cid, recipient, payload)
+        relations.enqueue(store, recipient, cid)
+    relations.publish(store)
     return PushOutcome(http_status=200, code="OK", event_id=cid, public=False,
                        extra={"inbox_seq": str(seq)})

@@ -1,6 +1,6 @@
 # Signing domains and digest recipes
 
-Prefixes below are exact ASCII bytes followed immediately by canonical protobuf
+The prefixes in the protobuf table below are exact ASCII bytes followed immediately by canonical protobuf
 core bytes. There is no separator, length prefix or implicit JSON conversion.
 Signatures are Ed25519. SHA-256 digests are lowercase hexadecimal (64 characters).
 The generated core must preserve optional presence and wide integers as defined in
@@ -25,6 +25,23 @@ prefix**; SignedPayload signs the exact envelope bytes **without a prefix**.
 Do not substitute a world/session domain into those established algorithms.
 A digest or valid signature alone is not request/actor/audience/House binding or
 current authorization. Every verifier checks the saved original context.
+
+## Identity read ASCII domain
+
+`popclaw-identity-read-v2` is a separate Ed25519 identity signature over this
+complete ASCII message, with no protobuf core or trailing byte:
+
+```text
+popclaw-identity-read-v2:<purpose>:<requester>:<house_key>:<seconds>:<origin>
+```
+
+Use the four purposes, trusted audience, verbatim canonical origin, canonical
+seconds and encoding rules in [READ-AUTH.md](READ-AUTH.md). The credential header
+is `v2.<requester>.<seconds>.<standard-base64-signature>`. The origin is last because
+it may contain colons; the message must not be parsed to recover input values.
+The old three-segment self-signed `inbox-read` form is refused. House-issued
+session inbox tokens remain an independent declared scheme, not this domain.
+No EventEnvelope, CID, protobuf core or domain in the table above changes.
 
 ## Canonical protobuf core
 

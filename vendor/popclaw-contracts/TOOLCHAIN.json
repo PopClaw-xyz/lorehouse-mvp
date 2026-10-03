@@ -1,5 +1,5 @@
 {
-  "protocol_version": "0.1.0-public-envelope-01.6",
+  "protocol_version": "0.1.0-public-envelope-01.7",
   "envelope_baseline": "public-envelope-01",
   "generation": {
     "protoc": "34.1",

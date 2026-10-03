@@ -1,0 +1,207 @@
+{
+  "contract": "packages/contracts/protocol/public-envelope-01/READ-AUTH.md",
+  "domain": "popclaw-identity-read-v2",
+  "house_a_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+  "house_b_key": "BqPR9LdPgbyjdPfSxUmmhGKURmsScrYXUbtDp6E7FDit",
+  "how_to_recompute": "seed(tag) is 32 bytes: the UTF-8 bytes of tag at the front, zero padded. SigningKey::from_bytes(seed). Each side recomputes message, signature and token with its own constructor and compares byte for byte, rather than trusting this file.",
+  "negative": [
+    {
+      "expect": "reject",
+      "name": "same-key-different-origin",
+      "presented_to": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "http://127.0.0.1:8102"
+      },
+      "signed_for": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "http://127.0.0.1:8099"
+      },
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.VyGYEQcBLHe7j0XLFwVOjQv3GfSKxgFCyyxt0hCVqoW3XbNtDcNFHtifEhls0FeeuRLgWJjF0m5phfBsxdU2Dg==",
+      "why": "signed for one origin and presented to another that shares its house key byte for byte. Not constructed: these are two houses that actually run side by side, and this is the only shape an implementation binding the key alone lets through"
+    },
+    {
+      "expect": "reject",
+      "name": "wrong-house-key",
+      "presented_to": {
+        "house_key": "BqPR9LdPgbyjdPfSxUmmhGKURmsScrYXUbtDp6E7FDit",
+        "origin": "https://house.example"
+      },
+      "signed_for": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "why": "same origin, different house key"
+    },
+    {
+      "expect": "reject",
+      "name": "wrong-purpose",
+      "presented_to_route": "/v1/relation-snapshot",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "why": "a relation-list credential presented to the snapshot route. This belongs to the real-route matrix: a helper testing itself cannot catch it"
+    },
+    {
+      "expect": "reject",
+      "name": "v1-shape",
+      "reason_kind": "unsupported_format",
+      "token": "8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "why": "the old three-segment shape. The refusal is unsupported_format, which must not be read as proof that the caller is an outdated client rather than a forgery"
+    },
+    {
+      "expect": "reject",
+      "name": "five-segments",
+      "reason_kind": "unsupported_format",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==.x",
+      "why": "exact segment count, not a lenient split: otherwise the timestamp and signature fold into one field and the refusal is filed under the wrong reason"
+    },
+    {
+      "expect": "reject",
+      "name": "not-fresh-plus-61",
+      "reason_kind": "not_fresh",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650061.nCxyRWo0XXUacL/IarfW2fHPJ4SVBHAJmN/JxI6dljbEWXW+mBVaNdFruY9kVjkH0mVTdMwG8Xz/Tiiu3yKxDg==",
+      "why": "boundary: 60 seconds accepted, 61 refused"
+    },
+    {
+      "expect": "reject",
+      "name": "negative-ts",
+      "reason_kind": "malformed",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.-1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "why": "a negative sign must be refused by the non-negative rule. Deliberately an eleven-character negative so it clears both length bounds and actually reaches the timestamp grammar: i64::MIN is twenty characters and would be stopped by the length bound first, leaving an implementation that parses a signed integer and takes the absolute difference — exactly the mistake this guards — passing a red test"
+    },
+    {
+      "expect": "reject",
+      "name": "ts-leading-zero",
+      "reason_kind": "malformed",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.01789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "why": "non-canonical decimal"
+    },
+    {
+      "expect": "reject",
+      "name": "ts-milliseconds",
+      "reason_kind": "not_fresh",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000000.0VkSnsmc9yxm6hF/rwSOcd/mfg49DFIwbARY/r524G4gTK7Z1Lg4oIjcq17BJvMKQ6ZwqnNUmmPXRUJIxjiYAA==",
+      "why": "thirteen digits of milliseconds pass every syntax rule and fail only freshness, which looks exactly like clock drift. This is why the unit is written into the contract rather than implied"
+    },
+    {
+      "expect": "reject",
+      "name": "signature-truncated",
+      "reason_kind": "malformed",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLD",
+      "why": "the right base64 length is not validity: it must decode to exactly 64 bytes"
+    }
+  ],
+  "positive": [
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-list:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:https://house.example",
+      "name": "list-default-port",
+      "note": "default port omitted",
+      "purpose": "relation-list",
+      "signature_b64": "jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.jfMTofKR2+1E3JSymlZ0XmjJQrojCMcYcHwGWeJ/aEyAjb805ZfgoAhtI7wGpUJpFck7zjEmv5grZj4LBSLDAw==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "http://127.0.0.1:8102"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-list:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:http://127.0.0.1:8102",
+      "name": "list-explicit-port",
+      "note": "explicit non-default port kept",
+      "purpose": "relation-list",
+      "signature_b64": "qDLW9o3npk0VYT8bl1IykAz6BbX8KGrAJHe+Y7lGhebl7ZwqT/JJPMb2y/WCBvzrtYGb79TIz7EwqSrexnB6CQ==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.qDLW9o3npk0VYT8bl1IykAz6BbX8KGrAJHe+Y7lGhebl7ZwqT/JJPMb2y/WCBvzrtYGb79TIz7EwqSrexnB6CQ==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "http://[::1]:8102"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-list:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:http://[::1]:8102",
+      "name": "list-ipv6-loopback",
+      "note": "IPv6 keeps its brackets; the tail field carries its own colons",
+      "purpose": "relation-list",
+      "signature_b64": "5/F1/DaTIrZZZCJaX/M5//Kj8/5dHf/4eOtOzs73sK20syn/qG1G//BZcX6GrBZXa61Mgl6IJ7m769A8tMi0Cw==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.5/F1/DaTIrZZZCJaX/M5//Kj8/5dHf/4eOtOzs73sK20syn/qG1G//BZcX6GrBZXa61Mgl6IJ7m769A8tMi0Cw==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:inbox-stream:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:https://house.example",
+      "name": "inbox",
+      "note": "",
+      "purpose": "inbox-stream",
+      "signature_b64": "A9+Vy3B3be1ELjTd6HVFCf4Uh3hYeKsqIq7VSr4F05Qijvktwp9WoWUaHlAhTdSJ+2pdzZZ6IXD5Cj1t4KbpCg==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.A9+Vy3B3be1ELjTd6HVFCf4Uh3hYeKsqIq7VSr4F05Qijvktwp9WoWUaHlAhTdSJ+2pdzZZ6IXD5Cj1t4KbpCg==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-snapshot:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:https://house.example",
+      "name": "snapshot",
+      "note": "",
+      "purpose": "relation-snapshot",
+      "signature_b64": "V9r1Dil+FDmPrAW5VdSe25on2JlJ2V3QkbR8AZ49T7rOov/5KuplvUZAQNzCjlIYUjen29nSxEGR9h8cX/MVCA==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.V9r1Dil+FDmPrAW5VdSe25on2JlJ2V3QkbR8AZ49T7rOov/5KuplvUZAQNzCjlIYUjen29nSxEGR9h8cX/MVCA==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-evidence:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789650000:https://house.example",
+      "name": "evidence",
+      "note": "",
+      "purpose": "relation-evidence",
+      "signature_b64": "P0uxvR3Rzr5dUod9P58+mUEmssPX7yDSNtXzuKeHDYIcPFaqVP9cqplICIlOR1yJLqqvNp/BAWSEItO3cQo+AQ==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789650000.P0uxvR3Rzr5dUod9P58+mUEmssPX7yDSNtXzuKeHDYIcPFaqVP9cqplICIlOR1yJLqqvNp/BAWSEItO3cQo+AQ==",
+      "ts": 1789650000,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    },
+    {
+      "audience": {
+        "house_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
+        "origin": "https://house.example"
+      },
+      "expect": "accept",
+      "message": "popclaw-identity-read-v2:relation-list:8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci:5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn:1789649940:https://house.example",
+      "name": "boundary-minus-60",
+      "note": "verified with now = 1789650000; exactly 60 seconds away must be accepted",
+      "purpose": "relation-list",
+      "signature_b64": "wnSyNSz944BBQGmV75SoyieQZu7dn6HSOkhrnuCSKzG0peW7KsE6E8wQBrskqSNI5NFoLBtp0JmHPxBVoe/nDQ==",
+      "token": "v2.8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci.1789649940.wnSyNSz944BBQGmV75SoyieQZu7dn6HSOkhrnuCSKzG0peW7KsE6E8wQBrskqSNI5NFoLBtp0JmHPxBVoe/nDQ==",
+      "ts": 1789649940,
+      "ts_wallclock_utc": "2026-09-17T09:00:00Z"
+    }
+  ],
+  "requester_popclaw_id": "8z6mDmoHWPQCrXWPCdMKW8a3twtkJEcy6eaUtugoJ1ci",
+  "seeds": {
+    "house_a": "popclaw-vectors-house-a",
+    "house_b": "popclaw-vectors-house-b",
+    "requester": "popclaw-vectors-user-v1"
+  },
+  "verify_now_utc_seconds": 1789650000
+}

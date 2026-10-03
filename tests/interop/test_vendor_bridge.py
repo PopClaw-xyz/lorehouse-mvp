@@ -28,7 +28,7 @@ def test_vendor_pin_matches_trusted_digest():
         [sys.executable, str(REPO_ROOT / "tools" / "vendor_verify_contracts.py")],
         capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
-    assert "271 files verified" in result.stdout
+    assert "273 files verified" in result.stdout
     assert wire.__file__  # bridge imported from the same vendored tree
 
 

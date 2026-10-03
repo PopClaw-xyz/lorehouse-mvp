@@ -189,6 +189,67 @@ MIGRATIONS: tuple[tuple[int, str], ...] = (
     ),
 )
 
+MIGRATIONS += ((4, """
+    CREATE TABLE relation_originals (
+        event_id TEXT PRIMARY KEY REFERENCES accepted_envelopes(event_id),
+        house_key TEXT NOT NULL,
+        follower TEXT NOT NULL,
+        followee TEXT NOT NULL,
+        seq INTEGER,
+        resolves TEXT NOT NULL,
+        action TEXT NOT NULL,
+        event_status TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+    );
+    CREATE INDEX relation_edge ON relation_originals(house_key, follower, followee);
+    CREATE TABLE relation_edges (
+        house_key TEXT NOT NULL,
+        follower TEXT NOT NULL,
+        followee TEXT NOT NULL,
+        state TEXT NOT NULL,
+        applied_seq INTEGER,
+        applied_event_id TEXT,
+        conflicted INTEGER NOT NULL,
+        revoked_at INTEGER,
+        PRIMARY KEY(house_key, follower, followee)
+    );
+    CREATE TABLE personal_outbox (
+        obligation INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipient TEXT NOT NULL,
+        event_id TEXT NOT NULL REFERENCES accepted_envelopes(event_id),
+        published INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(recipient, event_id)
+    );
+    CREATE TABLE personal_counters (
+        recipient TEXT PRIMARY KEY,
+        high_water INTEGER NOT NULL,
+        floor INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE TABLE personal_log (
+        generation INTEGER NOT NULL,
+        recipient TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        event_id TEXT NOT NULL REFERENCES accepted_envelopes(event_id),
+        PRIMARY KEY(generation, recipient, seq),
+        UNIQUE(generation, recipient, event_id)
+    );
+    CREATE TABLE relation_checkpoints (
+        checkpoint TEXT PRIMARY KEY,
+        requester TEXT NOT NULL,
+        generation INTEGER NOT NULL,
+        floor INTEGER NOT NULL,
+        watermark INTEGER NOT NULL,
+        entries_json TEXT NOT NULL,
+        expires_at_ms INTEGER NOT NULL
+    );
+    CREATE TABLE relation_continuations (
+        cursor TEXT PRIMARY KEY,
+        checkpoint TEXT NOT NULL,
+        offset INTEGER NOT NULL
+    );
+    INSERT INTO house_meta(key, value) VALUES ('personal_generation', '1');
+"""),)
+
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1][0]
 
 

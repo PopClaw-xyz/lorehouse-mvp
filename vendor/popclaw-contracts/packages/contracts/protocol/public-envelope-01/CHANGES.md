@@ -1,5 +1,34 @@
 # Compatibility changes
 
+`0.1.0-public-envelope-01.7` publishes the existing named identity read contract
+and its existing synthetic golden vectors, which were missing from the sealed
+public source. It supersedes the adopted `.6` bundle
+`d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b`
+(271 members) under a new version and digest; it does not reseal that version.
+
+- READ-AUTH.md is normative for the exact `popclaw-identity-read-v2` ASCII
+  signature domain, audience/purpose binding, four-segment header, syntax,
+  inclusive 60-second window, verified declaration and failure semantics.
+  RELATIONS.md and IMPLEMENTERS.md no longer instruct identity readers to sign
+  the obsolete three-segment `inbox-read` form. Old self-signed forms are
+  refused, with no anonymous or failure-triggered authentication fallback.
+  This corrects a normative authentication rule; it is not compatibility with
+  the old three-segment credential or a purely editorial revision.
+- The fixed first-release client already constructs identity-v2. This revision
+  changes no identity credential HTTP wire bytes relative to that implementation.
+  House-issued session inbox tokens remain an independently declared lane,
+  selected first when a current authorized session and its trusted declaration
+  exist. Identity authentication does not supply a session/installation fence;
+  routes retain their object policy and evidence's uniform empty `404`.
+- Seven positive and ten negative synthetic identity read vectors are included.
+  All cryptographic values are retained; only their contract metadata points
+  into this public bundle. SOURCE-PROVENANCE.json records the original file hash
+  and source. Historical unresolved provenance is preserved as unverified.
+- Proto, descriptor, codecs, shared algorithms, EventEnvelope bytes, CID and
+  event-signing rules are unchanged. Envelope baseline remains
+  `public-envelope-01`. This bundle does not establish deployment, session
+  lifecycle, runtime interoperability or permission to publish.
+
 `0.1.0-public-envelope-01.6` settles where a relation original may be delivered,
 and what a client may do after refusing one that reached it on a public channel
 anyway. It is a normative revision, not an editorial one: the shared

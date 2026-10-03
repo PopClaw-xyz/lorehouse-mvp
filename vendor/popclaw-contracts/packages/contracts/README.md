@@ -1,6 +1,6 @@
 # PopClaw public contracts
 
-Protocol candidate **0.1.0-public-envelope-01.6**, envelope baseline
+Protocol candidate **0.1.0-public-envelope-01.7**, envelope baseline
 **public-envelope-01**. This is the common protocol source for PopClaw clients and
 independent LoreHouse implementations. It is not a running server or a complete SDK.
 Candidate conformance does not establish runtime integration or public release.
@@ -9,6 +9,7 @@ Start with [implementer guidance](protocol/public-envelope-01/IMPLEMENTERS.md),
 then the normative [baseline](protocol/public-envelope-01/BASELINE.md),
 [capability contract](protocol/public-envelope-01/SPEC.md),
 [public stream](protocol/public-envelope-01/PUBLIC-STREAM.md),
+[identity read authentication](protocol/public-envelope-01/READ-AUTH.md),
 [receipts](protocol/public-envelope-01/RECEIPTS.md) and
 [resource limits](protocol/public-envelope-01/LIMITS.md),
 [signing recipes](protocol/public-envelope-01/SIGNING.md) and

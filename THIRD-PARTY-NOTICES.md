@@ -23,12 +23,12 @@ Apache-2.0 (see `LICENSE`); this file does not change that.
 ## Vendored protocol bundle: `vendor/popclaw-contracts/`
 
 A controlled copy of the PopClaw public contract source bundle
-**0.1.0-public-envelope-01.6** (envelope baseline `public-envelope-01`), taken
-from the public candidate head `3f985f47` of `merge/candidate-0.1.0`, whose
-protocol files are identical to the seal commit `f42bf5db`; a whole-package
-acceptance receipt is still pending. Bundle SHA-256 pin:
-`d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b`.
-`tools/vendor_verify_contracts.py` re-verifies the 271-file copy against that
+**0.1.0-public-envelope-01.7** (envelope baseline `public-envelope-01`), taken
+from the locally accepted commit `37db76d8573e9931c24671a05a89ec606cbfab06`,
+protocol subtree `8f1745ed5be08a16248b88c7705dfdff4d5b70ea`.
+This acceptance covers local integration, not a public release. Bundle pin:
+`f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec`.
+`tools/vendor_verify_contracts.py` re-verifies the 273-file copy against that
 pin; it is never re-pinned to downloaded content. The bundle keeps its own
 `LICENSE`, `NOTICE`, `SOURCE-PROVENANCE.json` and `THIRD-PARTY.md` inside the
 vendor directory and is Apache-2.0 like this repository.

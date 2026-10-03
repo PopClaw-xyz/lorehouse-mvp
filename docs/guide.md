@@ -135,8 +135,36 @@ the `public-v1` stream.
 
 ### House administration
 
-`python tools/house_admin.py --data-dir ./.ranger-map --origin <origin>`
-performs an explicit restore: both incarnation domains rotate to fresh
-never-reused ids, all sessions and inbox tokens are fenced, and the manifest
-is rebuilt against the new log identity. The server must be stopped (the
-data-root lock enforces it). Ordinary restarts never rotate anything.
+Ordinary startup retains the existing manifest/guide pins. To adopt this
+fixed package's relation/read capabilities and guide on the **same data
+root and House key**, use this explicit offline path:
+
+1. Stop the server and identify its exact absolute data directory and
+   already pinned canonical origin. The data-root lock rejects maintenance
+   while a server holds the root.
+2. Make a private backup of the complete stopped data directory, including
+   the House key and SQLite files. Keep the backup outside Git/public output.
+3. From the fixed candidate and its normal Python environment, run:
+
+   ```sh
+   python tools/house_admin.py --restore --refresh-guide --data-dir <absolute-data-dir> --origin <already-pinned-origin>
+   ```
+
+4. Record the tool's actual `new capability revision` output; there is no
+   predetermined revision because restore creates new incarnation IDs.
+   Start the same directory/origin normally. Clients must validate the new
+   manifest proof, guide hash and capability revision and enter a new
+   session before submitting actions.
+
+`--restore` is a required explicit action. `--refresh-guide` additionally
+pins the current fixed package's guide bytes, revision and digest with the
+new manifest in one transaction. Omitting it preserves the old guide.
+Missing existing keys/databases, malformed parameters and invalid refresh guides are refused before
+maintenance changes. Both incarnation domains rotate to fresh never-reused
+ids and all sessions/inbox tokens are fenced. House key, origin, accepted
+originals and business data stay; personal generation rotates with its
+recipient positions and full retained prefix preserved. Relation snapshots
+recover relations only; DM recovery replays that prefix from the floor and
+deduplicates by CID. Ordinary restarts rotate nothing. These instructions
+describe the normal path; this candidate has not maintained an existing
+test instance or verified the paired client's full DM reset recovery.

@@ -1,6 +1,6 @@
 # Public envelope baseline 01
 
-Version: `0.1.0-public-envelope-01.6`. Baseline: `public-envelope-01`.
+Version: `0.1.0-public-envelope-01.7`. Baseline: `public-envelope-01`.
 This document defines normative changes to the earlier envelope coverage promise.
 It is not an assertion of compatibility with a wider historical body set.
 

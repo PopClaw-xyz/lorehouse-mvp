@@ -21,18 +21,15 @@ from pathlib import Path
 
 VENDOR_ROOT = Path(__file__).resolve().parent.parent / "vendor" / "popclaw-contracts"
 
-# Trusted pin: 0.1.0-public-envelope-01.6 (seal commit f42bf5db; taken
-# from the public candidate head 3f985f47 of merge/candidate-0.1.0, whose
-# protocol files are identical to the seal). The architect signed this
-# object for the re-seal scope; a whole-package acceptance receipt is still
-# pending. Previous pins: .01.5 bundle
-# 7956e0d9aebd7f9031193047c30322c1e5fb22a8e3788a78f3d503ad67f03bef and
-# .01.3 bundle
-# 3bc796e3aa4b69d0f957b2c3e71698f73c874527738f0a4c170f27b4d8e0d170. Do not
+# Trusted pin: 0.1.0-public-envelope-01.7, accepted local integration
+# object 37db76d8573e9931c24671a05a89ec606cbfab06, protocol subtree
+# 8f1745ed5be08a16248b88c7705dfdff4d5b70ea. Whole-package/public release
+# is outside this acceptance. Previous .01.6 bundle:
+# d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b. Do not
 # update to match a downloaded replacement; a new pin requires a new
 # reviewed candidate.
-EXPECTED_BUNDLE_SHA256 = "d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b"
-EXPECTED_PROTOCOL_VERSION = "0.1.0-public-envelope-01.6"
+EXPECTED_BUNDLE_SHA256 = "f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec"
+EXPECTED_PROTOCOL_VERSION = "0.1.0-public-envelope-01.7"
 EXPECTED_BASELINE = "public-envelope-01"
 
 

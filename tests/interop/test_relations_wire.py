@@ -4,9 +4,7 @@
 A follow or unfollow is a personal event (RELATIONS.md §8): it is owed to
 the two participants and to no public lane, and `FollowType.PUBLIC`
 describes the relation's nature rather than granting a public-stream
-right. Ranger Map implements no relation engine, so it refuses every
-relation original at ingress — the ordered case under the contract's own
-refusal (§3/§9), the rest under this house's policy — and skips any row an
+right. This House admits valid relations privately and skips any row an
 earlier build already numbered into the durable log on all three public
 exits: replay, live and the legacy lane.
 
@@ -68,7 +66,7 @@ def _nothing_stored(house, payload: bytes) -> None:
 
 
 @pytest.mark.parametrize("revoke", [False, True], ids=["declared", "revoked"])
-def test_plain_follow_is_refused_too_not_only_the_ordered_kind(house, revoke):
+def test_legacy_follow_is_private_and_legal_before_ordered_evidence(house, revoke):
     # Two layers, and they answer different questions. The raw-wire guard
     # still decodes and structurally validates these bytes — the generic
     # wire capability is retained — while the sealed public predicate no
@@ -79,13 +77,13 @@ def test_plain_follow_is_refused_too_not_only_the_ordered_kind(house, revoke):
     with pytest.raises(wire.WireError, match="NOT_PUBLIC"):
         wire.guard_public_structure(payload)
     response = push(house.client, wrap_signed(payload, actor))
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == "RELATION_UNSUPPORTED"
-    _nothing_stored(house, payload)
+    assert response.status_code == 200
+    assert house.store.public_log_high_water(house.state.log_incarnation) == 0
+    assert house.store.query_one('SELECT COUNT(*) n FROM personal_log')['n'] == 2
 
 
 @pytest.mark.parametrize("revoke", [False, True], ids=["declared", "revoked"])
-def test_ordered_follow_is_refused_not_degraded(house, revoke):
+def test_ordered_follow_is_admitted_without_publication(house, revoke):
     actor, followee = Actor("Mira"), Actor("Ezra")
     payload = _follow(actor, followee, revoke=revoke,
                       order={"seq": 1, "house_key": house.identity.house_key_id})
@@ -94,9 +92,9 @@ def test_ordered_follow_is_refused_not_degraded(house, revoke):
     # rather than falling through to a generic public-eligibility verdict.
     assert wire.guard_envelope(payload) == (21 if revoke else 20)
     response = push(house.client, wrap_signed(payload, actor))
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == "RELATION_ORDER_UNSUPPORTED"
-    _nothing_stored(house, payload)
+    assert response.status_code == 200
+    assert house.store.public_log_high_water(house.state.log_incarnation) == 0
+    assert house.store.query_one('SELECT applied_seq FROM relation_edges')[0] == 1
 
 
 def test_present_but_empty_order_is_still_ordered_mode(house):
@@ -106,7 +104,7 @@ def test_present_but_empty_order_is_still_ordered_mode(house):
     assert envelope.follow_declared.HasField("order")
     response = push(house.client, wrap_signed(payload, actor))
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "RELATION_ORDER_UNSUPPORTED"
+    assert response.json()["error"]["code"] == "RELATION_ORDER_INVALID"
     _nothing_stored(house, payload)
 
 
@@ -117,17 +115,17 @@ def test_private_follow_never_admitted_through_push(house):
     assert response.status_code == 400
     # Refused as a relation before the privacy predicate is ever consulted:
     # a PRIVATE follow was already inadmissible, and now so is every other.
-    assert response.json()["error"]["code"] == "RELATION_UNSUPPORTED"
+    assert response.json()["error"]["code"] == "RELATION_PRIVATE_UNSUPPORTED"
     _nothing_stored(house, payload)
 
 
-def test_manifest_declares_no_relations_capability(house):
-    # RELATIONS.md §1: absence means unsupported; {"ordered": 0} is not how
-    # a house says no. This build has no ordered-relation engine.
+def test_manifest_declares_runtime_relations_and_named_read_capabilities(house):
+    # RELATIONS.md §1: the capability-bearing bytes are the proof's body.
     manifest = house.state.manifest_json
-    assert "relations" not in manifest
+    assert manifest['relations'] == {'ordered': 1}
+    assert manifest['read_auth'] == {'schemes': ['popclaw-identity-read-v2']}
     served = house.client.get("/v1/manifest").json()
-    assert "relations" not in served
+    assert served['relations'] == {'ordered': 1}
 
 
 def test_envelope_limit_is_the_01_4_bound(house):
@@ -449,6 +447,6 @@ def test_a_legacy_stored_relation_is_still_refused_not_replayed_as_public(
     response = push(house.client, wrap_signed(payload, mira))
     assert response.status_code == 400, response.json()
     body = response.json()
-    assert body["error"]["code"] == "RELATION_UNSUPPORTED"
+    assert body["error"]["code"] == "RELATION_INDEX_INVALID"
     assert body.get("public") is not True
     assert body.get("duplicate") is not True

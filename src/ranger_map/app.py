@@ -51,6 +51,8 @@ from starlette.staticfiles import StaticFiles
 from . import actions as actions_mod
 from . import house as house_mod
 from . import ingress as ingress_mod
+from . import identity_read
+from . import relation_reads
 from . import sessions as sessions_mod
 from . import streams as streams_mod
 from . import wire
@@ -339,12 +341,12 @@ async def guide_endpoint(request: Request) -> Response:
     return Response(content=state.guide_bytes, media_type="text/markdown")
 
 
-def _profile_sigil(popclaw_id: str) -> str:
+def _profile_sigil(popclaw_id: str, length: int = 8) -> str:
     """Existing public algorithm: first eight lowercase Crockford SHA256 digits."""
     alphabet = "0123456789abcdefghjkmnpqrstvwxyz"
     digest = hashlib.sha256(popclaw_id.encode("utf-8")).digest()
-    prefix = int.from_bytes(digest[:5], "big")
-    return "".join(alphabet[(prefix >> shift) & 31] for shift in range(35, -1, -5))
+    prefix = int.from_bytes(digest, "big")
+    return "".join(alphabet[(prefix >> (256 - 5 * (i + 1))) & 31] for i in range(length))
 
 
 def _unique_json_object(pairs):
@@ -431,12 +433,61 @@ async def profile_endpoint(request: Request) -> Response:
         raise StorageUnavailable("the local profile database is not readable") from exc
     # Absence is an explicit answer inside a complete HTTP wrapper. Only a
     # genuinely absent row omits card; invalid IDs and unreadable rows fail.
+    identity = getattr(request.app.state, 'identity', None)
+    try:
+        followers = store.query_one('SELECT COUNT(*) n FROM relation_edges '
+                                    'WHERE house_key=? AND followee=? AND state=\'active\'',
+                                    (identity.house_key_id, popclaw_id))['n'] if identity else 0
+    except sqlite3.Error as exc:
+        raise StorageUnavailable('the local relation projection is not readable') from exc
     body = {"popclaw_id": popclaw_id, "sigil": _profile_sigil(popclaw_id),
-            "profiles": [], "house_follower_count": 0,
+            "profiles": [], "house_follower_count": followers,
             "house_post_count": posts, "house_reply_received_count": replies}
     if card is not None:
         body["card"] = card
     return JSONResponse(body)
+
+
+async def resolve_endpoint(request: Request) -> Response:
+    """Current-client directory binding over actual public Profile rows.
+
+    No session, follow or name string manufactures a verified account. Read
+    errors remain failures rather than an apparently successful empty roster.
+    """
+    sigil = request.query_params.get("sigil", "").strip().lower()
+    name = request.query_params.get("name", "").strip()
+    if sigil:
+        sigil = sigil.translate(str.maketrans({"o": "0", "i": "1", "l": "1"}))
+        if not 6 <= len(sigil) <= 12 or any(c not in "0123456789abcdefghjkmnpqrstvwxyz" for c in sigil):
+            raise InvalidInput("sigil must be 6..12 Crockford digits")
+    elif not name:
+        raise InvalidInput("provide sigil or name")
+    candidates = []
+    try:
+        with request.app.state.store.read_tx():
+            rows = request.app.state.store.query_all(
+                "SELECT ranger_id, card_json FROM profiles ORDER BY ranger_id")
+            for row in rows:
+                card = _profile_card(row["card_json"])
+                try:
+                    wire.key_bytes_from_popclaw_id(row["ranger_id"])
+                except ValueError as exc:
+                    raise StorageUnavailable("the stored profile identity is invalid") from exc
+                short = _profile_sigil(row["ranger_id"])
+                if sigil:
+                    # Match the requested prefix length; display eight digits.
+                    matches = _profile_sigil(row["ranger_id"], max(8, len(sigil))).startswith(sigil)
+                else:
+                    matches = name.casefold() in card["nickname"].casefold()
+                if matches:
+                    candidates.append({"popclaw_id": row["ranger_id"],
+                                       "nickname": card["nickname"],
+                                       "sigil": short, "profiles": []})
+    except sqlite3.Error as exc:
+        raise StorageUnavailable("the local profile directory is not readable") from exc
+    candidates.sort(key=lambda c: (c["nickname"].casefold() != name.casefold(),
+                                   c["nickname"].casefold(), c["popclaw_id"]))
+    return JSONResponse({"candidates": candidates[:256]})
 
 
 async def push_endpoint(request: Request) -> Response:
@@ -497,7 +548,10 @@ async def world_stream_endpoint(request: Request) -> Response:
 
 
 async def inbox_stream_endpoint(request: Request) -> Response:
-    identity, _state = _require_house(request)
+    identity = getattr(request.app.state, 'identity', None)
+    _state = getattr(request.app.state, 'house_state', None)
+    if identity is None or _state is None or not _state.origin:
+        return error_response('read_authority_unavailable', 'the read audience is unavailable', 503)
     hub: streams_mod.StreamHub = request.app.state.hub
     popclaw_id = request.path_params["popclaw_id"]
     try:
@@ -509,38 +563,25 @@ async def inbox_stream_endpoint(request: Request) -> Response:
         return error_response(
             "invalid_input",
             "an x-popclaw-inbox-token header is required", 401)
-    token_is_v2 = token.startswith("itk-")
+    token_is_session = token.startswith("itk-")
     # Authenticate before the stream starts; the generator revalidates
     # before EVERY frame (leave/revocation/expiry stop delivery mid-stream).
-    if token_is_v2:
+    if token_is_session:
         if not sessions_mod.verify_inbox_token(request.app.state.store,
                                                identity, _state.origin, token,
                                                popclaw_id):
             return error_response("invalid_input",
                                   "inbox token is not valid for this recipient", 401)
     else:
-        # Reference-server security policy (aligned with the official Rust
-        # implementation, not quoted public normative text): once an
-        # identity has used house sessions here, the self-signed legacy
-        # lane is refused for it — a leave must fence the inbox with no
-        # legacy bypass.
-        if sessions_mod.actor_has_session_state(request.app.state.store,
-                                                popclaw_id):
-            return error_response(
-                "invalid_input",
-                "legacy inbox lane is unavailable for identities with house"
-                " session history; use the session inbox token", 401)
-        if not sessions_mod.verify_legacy_inbox_token(token, popclaw_id):
-            return error_response("invalid_input",
-                                  "inbox token is not valid for this recipient", 401)
-    try:
-        last_id = int(request.headers.get("last-event-id") or "0")
-    except ValueError:
-        return error_response("invalid_input", "Last-Event-ID malformed", 400)
+        status = identity_read.inbox_status(request.app.state.store, token, identity,
+                                           _state.origin, popclaw_id)
+        if status != 200:
+            return error_response('invalid_input', 'identity inbox read refused', status)
+    last_id = request.headers.get("last-event-id") or ""
 
     generator = streams_mod.stream_inbox_events(
         request.app.state.store, identity, hub, _state.origin, popclaw_id,
-        token, token_is_v2, last_id,
+        token, token_is_session, last_id,
     )
     return StreamingResponse(
         generator,
@@ -587,6 +628,11 @@ def create_app(store, static_root: Path | str | None = None,
             Route("/v1/manifest", manifest_endpoint, methods=["GET"]),
             Route("/v1/guide.md", guide_endpoint, methods=["GET"]),
             Route("/v1/profile/{popclaw_id}", profile_endpoint, methods=["GET"]),
+            Route("/v1/resolve", resolve_endpoint, methods=["GET"]),
+            Route("/v1/relation-snapshot", relation_reads.snapshot, methods=["GET"]),
+            Route("/v1/relation-evidence/{event_id}", relation_reads.evidence, methods=["GET"]),
+            Route("/followers/{popclaw_id}", relation_reads.relation_list, methods=["GET"]),
+            Route("/follows/{popclaw_id}", relation_reads.relation_list, methods=["GET"]),
             Route("/v1/push", push_endpoint, methods=["POST"]),
             Route("/v1/house-session", house_session_endpoint, methods=["POST"]),
             Route("/v1/world-actions/status", action_status_endpoint, methods=["POST"]),

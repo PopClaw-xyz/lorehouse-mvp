@@ -4,20 +4,26 @@ PopClaw Ranger Map speaks the shared PopClaw public contract natively. This
 document records what is bound, the trusted inputs it consumes, and what
 remains outside this build's scope.
 
-## Status: adapter BOUND to public-envelope-01.6
+The current ordered-relations and identity-read implementation is recorded in
+[relations-client-binding.md](relations-client-binding.md), using sealed
+READ-AUTH's four purposes and independent session-token inbox authority.
+The upgrade tables below record earlier implementation dispositions; they do
+not supersede that current capability and verification record.
+
+## Status: adapter BOUND to public-envelope-01.7
 
 The signed wire surface is implemented against the controlled copy of the
 contract source bundle vendored under `vendor/popclaw-contracts/`:
 
 | Artifact | Identity |
 | --- | --- |
-| Contract bundle | `0.1.0-public-envelope-01.6` (envelope baseline `public-envelope-01`) |
-| Trusted bundle SHA-256 | `d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b` |
-| Seal commit | `f42bf5db` (`PopClaw-xyz/popclaw`; bundle, pin and generated artifacts in one commit) |
-| Vendored from | candidate head `3f985f47` of `merge/candidate-0.1.0`, whose `protocol/` files are identical to the seal |
-| Receipt commit | pending — the architect signed this object for the re-seal scope, which is not a whole-package release acceptance |
+| Contract bundle | `0.1.0-public-envelope-01.7` (envelope baseline `public-envelope-01`) |
+| Trusted bundle SHA-256 | `f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec` |
+| Accepted fixed commit | `37db76d8573e9931c24671a05a89ec606cbfab06` |
+| Protocol subtree | `8f1745ed5be08a16248b88c7705dfdff4d5b70ea` |
+| Acceptance scope | Local integration after independent normative/security review, 2026-10-04; not a public release or client/runtime acceptance |
 
-`tools/vendor_verify_contracts.py` re-verifies all 271 files and the bundle
+`tools/vendor_verify_contracts.py` re-verifies all 273 files and the bundle
 digest against that pin (never re-pinned to downloaded content). The
 vendored Python bridge, pinned descriptor and shared vectors are the
 implementation basis; no alternative canonical codec is hand-rolled, and the
@@ -32,13 +38,13 @@ commit `654a63a3f995d3f1b390541fb1de5233680dc7cd`, receipt commit
 `4d0dc64a13bd011e3f2298b1df7db6fbd0e51b96`). A superseded `.01.6` candidate
 digest `f06e8a24` was never adopted here. The external client
 interoperability run recorded in [interop-verification.md](interop-verification.md)
-was made against the `.01.3` pin and is not re-claimed for `.01.6`.
+was made against the `.01.3` pin and is not re-claimed for `.01.7`.
 
 ## HTTP Profile binding for the public 0.1.0 client
 
 `GET /v1/profile/{popclaw_id}` implements the minimal read binding consumed
 by the public 0.1.0 client's namecard write guard. This is a version-specific
-client HTTP adapter, **not** an amendment to the sealed `.01.6` signed-wire
+client HTTP adapter, **not** an amendment to the sealed `.01.7` signed-wire
 contract or a promise that every Rust house endpoint is a permanent federation
 standard. The vendor bundle, Profile signing bytes, CID, timestamp storage
 unit and ingress semantics are unchanged.
@@ -89,7 +95,8 @@ When a stored card exists, all eight members are returned under `card`:
   UTF-8 bytes, lowercase Crockford base32 (`0123456789abcdefghjkmnpqrstvwxyz`),
   first eight characters. The shared check is `BlackFeather` → `gdx8rgtp`.
 - `profiles: []` reflects the absence of platform-account verification in
-  this build. `house_follower_count: 0` reflects its refusal of all relations.
+  this build. `house_follower_count` is the active, public-typed edge count in
+  this House's projection (zero when none); it remains a House hint.
 
 The other counts are genuine **house-local envelope counts**, not global
 influence scores or a complete Rust feed implementation:
@@ -163,6 +170,9 @@ release, install a package, or publish an artifact.
 
 ## Upgrade record: `.01.5` → `.01.6`
 
+Historical dispositions at that upgrade only; the implemented surface below
+and current-client binding describe the current relation engine.
+
 Two substantive changes, both of which this server had already anticipated.
 
 | # | Change | Disposition | What this server does |
@@ -175,6 +185,9 @@ below is resolved by this re-seal, in the direction this server already
 implemented.
 
 ## Upgrade record: `.01.3` → `.01.5`
+
+This table records that earlier build, including its then-refused relations.
+Those dispositions do not describe the current engine.
 
 Every change the bundle's `CHANGES.md` lists between the two versions, with
 this reference server's disposition. Only `LIMITS.md`, `SPEC.md`/`BASELINE.md`
@@ -217,21 +230,22 @@ regenerated descriptor/codecs, the vector file and the bundle tooling differ;
 - **`GET /v1/profile/:popclaw_id`** — the accepted profile projection for
   one identity. Three outcomes, never four: 400 when the id does not decode
   to a 32-byte key, 503 when the data root cannot serve, and 200 for
-  everything else.
-  An identity this house has never heard of is not a 404 — it gets a 200
-  carrying only the `popclaw_id` it was asked about. A client that reads
-  before it writes must fail closed on an unreadable answer, and a 404 is
-  indistinguishable from a route that moved; answering at all is how the
-  house says the route is alive and the identity is new.
+  readable valid identities, including absent cards. Malformed stored cards
+  return 503. An absent card gets all minimal response fields: `popclaw_id`,
+  `sigil`, `profiles: []`, and the three House counts, with `card` omitted.
+  A present card carries all eight members described above.
 - **`POST /v1/push`** — SignedPayload ingress: outer signature over the
   exact envelope bytes verified before any decode; the bounded raw-wire
   guard rejects any occurrence of reserved EventEnvelope field 29 or nested
   Profile field 8 (whole event, never stripped-and-repaired), duplicate
   singular fields, unknown envelope fields and malformed structure;
   canonical CID check; inner signature; `Base58Decode(actor.popclaw_id)`
-  must equal the 32-byte signer key. Every `FollowDeclared`/`FollowRevoked`
-  is refused (`RELATION_ORDER_UNSUPPORTED` when the `.01.5` `order`
-  sub-message is present at all, `RELATION_UNSUPPORTED` otherwise); see
+  must equal the 32-byte signer key. PUBLIC-typed `FollowDeclared`/`FollowRevoked`
+  use scoped ordered admission, persisted evidence and recovery adjudication.
+  Legacy mode is legal only before ordered evidence on that edge; PRIVATE
+  relations and malformed/foreign orders are refused. Known foreign-edge or
+  nonrelation references are invalid and cannot create a fork; unknown
+  references wait and are rejudged when the verified original arrives. See
   "Relation originals" below. Body policy: public lane for
   Post/Reply/Profile/legal HouseEvents (privacy predicate
   applied before publication), private relay for encrypted DirectMessages
@@ -276,11 +290,22 @@ regenerated descriptor/codecs, the vector file and the bundle tooling differ;
   earlier rows (BASELINE.md). The unqualified legacy lane keeps the old
   id/data frame grammar, applies the same privacy predicate and closes
   silently at unsafe rows.
-- **`GET /inbox/:id/stream`** — recipient-isolated DM SSE (named
-  `envelope` frames with the full signed envelope): house-issued v2 tokens
-  (re-validated every tick; leave/revocation closes the stream) or the
-  legacy self-signed `x-popclaw-inbox-token` lane with its 60-second
-  window. `Last-Event-ID` resumes from the durable per-recipient log.
+- **`GET /inbox/:id/stream`** — recipient-isolated DM/relation SSE with
+  exact originals and `id: <generation>.<seq>`. House-issued `itk-...`
+  session tokens retain their audience/session/revision/expiry/revocation
+  fences. The independent identity-read-v2 lane uses `inbox-stream` purpose
+  and permits only the recipient with no session history in this House.
+  Old three-part self-signing is refused. Invalid, obsolete or below-floor
+  resume cursors yield named `cursor-reset` without an id and close.
+- **Relation reads** — identity-read-v2 purposes `relation-list`,
+  `relation-snapshot` and `relation-evidence` protect the own-object lists,
+  frozen paginated checkpoints and participant-only exact original reads.
+  Evidence refusals are indistinguishable empty 404s; invalid credentials
+  are 401 and missing trusted read authority is 503.
+- **`GET /v1/resolve`** — sigil prefix or name substring lookup over actual
+  public Profile rows, retaining ambiguity and exposing only the minimal
+  public person fields. No candidate is 200, malformed query 400, malformed
+  stored card or storage failure 503.
 
 ### Log and incarnation semantics
 
@@ -327,13 +352,17 @@ and identities are never silently rotated. The documented migration is an
 explicit house restore:
 
 ```sh
-python tools/house_admin.py --data-dir <dir> --origin <origin>
+python tools/house_admin.py --restore --data-dir <dir> --origin <origin>
 ```
 
 The restore rotates both incarnation domains to fresh never-reused ids per
 the public contract and rebuilds the manifest with the declaration (a new
 `capability_revision`; previously issued action results stay queryable
-under the old revision they were signed against).
+under the old revision they were signed against). Add `--refresh-guide` to
+pin this fixed package's guide bytes/revision and digest with the rebuilt
+manifest in the same transaction. Without it, existing guide pins remain.
+See [normal same-root maintenance](guide.md#house-administration) for the
+required stop/backup steps and actual printed capability revision.
 
 ## Evidence
 
@@ -343,9 +372,9 @@ under the old revision they were signed against).
   eight retained world-signing domains all pass through this server's
   bridge import.
 - `tests/interop/test_relations_wire.py` — relation originals and the size
-  ceilings. Ingress: every Follow form (declared/revoked, ordered/plain/
-  present-but-empty `order`, PUBLIC/PRIVATE) is refused under its own code
-  with nothing stored, and the manifest declares no `relations` member.
+  ceilings. Ingress admits valid PUBLIC-typed ordered relations, allows legacy
+  mode only before ordered evidence, and refuses malformed orders/PRIVATE.
+  Manifest declarations are checked against the runtime capabilities.
   Exits: a relation original seeded into the durable log between two
   ordinary public events is withheld on replay, on the live lane and on the
   legacy lane, while both ordinary events still read and the checkpoint
@@ -414,7 +443,7 @@ admission policy, not a public-wire mandate over DM envelopes generally
 the ordinary recipient verifier; reposting them to this server is
 unsupported).
 
-## Inbox token representation and the legacy lane (G0 clarification)
+## Inbox token representation and identity lane (G0 clarification)
 
 Session request times are signed UTC epoch seconds from the requesting host.
 This reference server permits `issued_at` to be at most **30 seconds ahead**
@@ -445,28 +474,24 @@ session, revision, expiry and revocation are all bound and revalidated
 before EVERY delivered frame; leave/revocation/fence-change/expiry stop
 delivery and close the stream. No six-part format is imitated.
 
-The self-signed **legacy** lane (`x-popclaw-inbox-token`,
-`inbox-read:<id>:<seconds>`, 60-second window) is refused for any identity
-with house-session history in this house. That eligibility rule and the
-per-frame recheck are this reference server's security policy — aligned
-with the official Rust implementation's behavior, but **not** quoted public
-normative text (the public bundle does not prescribe a migration rule);
-clients that never enter sessions keep the legacy lane available.
+The old self-signed three-part token is now refused. The named identity-read-v2
+inbox lane has the same persistent session-history eligibility fence plus
+purpose/audience authentication and explicit 401/403 distinction. Never-sessioned
+identities may use it; session-history identities must use their specific ACK
+token. This is this House's policy. See the current-client binding above.
 
 ## Relation originals
 
 A follow or unfollow is a personal event. `RELATIONS.md` §8 owes an admitted
 relation original to the two participants' personal streams and to no public
 lane, and `FollowType.PUBLIC` describes the relation's nature rather than
-conferring any public-stream right. Ranger Map is a check-in map: it
-implements no relation engine, no ordered-relation adjudicator and neither
-reconciliation route, so it does not carry relation events at all.
+conferring any public-stream right. The current engine implements ordered
+admission, persisted fork/recovery adjudication, both reconciliation routes,
+and a shared recipient-isolated personal log for DMs and relations.
 
-- **Ingress refuses every relation original.** Structural validity and
-  delivery policy are separate questions: the vendored guard still decodes
-  and validates these envelopes (generic wire capability is retained), and
-  the refusal is this house's own. Nothing is stored and nothing is
-  published.
+- **Ingress retains every admitted original privately.** Evidence and both
+  participants' obligations commit with the projection. Invalid order
+  structure and PRIVATE-typed bodies are visibly refused, never downgraded.
 - **All three public exits withhold one.** A row an earlier build numbered
   into the durable public log is never delivered on replay, on the live lane
   or on the legacy lane. Its original bytes and CID are left untouched and
@@ -479,12 +504,9 @@ reconciliation route, so it does not carry relation events at all.
   and index association — runs first and unchanged, so genuinely bad bytes
   or a broken association still produce the proper gap or close instead of
   disappearing into a clean-looking stream.
-- **The refusal precedes the replay lookup.** A data root written by an
-  earlier build can still hold a relation original in `accepted_envelopes`,
-  and the idempotent-replay branch would otherwise answer 200 with
-  `public: true` for it — telling a client its relation sits on a public
-  lane that now withholds it. Refusing first is what makes "every relation
-  original is refused" true without qualification.
+- **Relation replay uses its own evidence index.** A mismatched index is
+  refused rather than returning a historical public receipt for a personal
+  original. There is no import or migration of a pre-release installation.
 - **Withholding does not depend on the sealed whitelist.** Relation-ness is
   decided from the structural decode, which keeps the field whatever the
   baseline's public predicate lists. The `.01.6` re-seal did drop tags 20/21
@@ -495,18 +517,16 @@ reconciliation route, so it does not carry relation events at all.
   the current pin breaks all three exits and the corruption test, which is
   what makes this decoupling load-bearing rather than defensive.
 
-`PUBLIC-STREAM.md` rows 20/21 and `CHANGES.md` still describe PUBLIC Follows
-as public-lane traffic. That conflict is the contract's own; the protocol
-owner is unifying the texts and will re-seal the bundle, and this server
-re-vendors once against the re-sealed pin rather than editing sealed text
-locally.
+The former public-lane conflict was resolved by `.01.6`; `.01.7` seals the
+current read-credential binding. Every vendored member remains byte-identical
+to the accepted upstream object.
 
 ## Known limits of this build
 
 - Invite/Quest/Watch/Poll/Mark typed bodies are structurally retained
   (with signatures verified) but have no house-side admission rules, so
   they are not published to the public lane; only the tags this house
-  actively validates (posts/replies/follows/profiles/HouseEvents plus its
+  actively validates (posts/replies/profiles/HouseEvents plus its
   own signed facts) are admitted publicly.
 - `actions.attachments` is `[]` and `consistency=none`: no snapshot or
   subscription attachments, no execution-closure capability, no structured

@@ -22,6 +22,8 @@ import time
 from dataclasses import dataclass
 
 from . import house as house_mod
+from . import identity_read
+from . import relations
 from . import sessions as sessions_mod
 from . import wire
 from .keys import HouseIdentity
@@ -313,7 +315,7 @@ def _sse_frame_with_id(seq: int, payload: bytes) -> str:
     return f"id: {seq}\ndata: {wire.b64(payload)}\n\n"
 
 
-def _sse_named_with_id(name: str, seq: int, payload: bytes) -> str:
+def _sse_named_with_id(name: str, seq: int | str, payload: bytes) -> str:
     return f"event: {name}\nid: {seq}\ndata: {wire.b64(payload)}\n\n"
 
 
@@ -714,32 +716,60 @@ async def stream_legacy_events(hub: StreamHub, last_event_id: int):
         hub.unregister_stream()
 
 
+def personal_cursor(raw, generation, floor, high_water):
+    if raw in ('', None, 0):
+        return (0, None) if floor <= 1 else (0, 'below_floor')
+    text = str(raw)
+    parts = text.split('.')
+    if (len(parts) != 2 or any(not _POSITION.fullmatch(p) or len(p) > 19 for p in parts)
+            or any(int(p) > relations.MAX_SEQ for p in parts)):
+        return 0, 'unreadable'
+    gen, seq = map(int, parts)
+    if gen != generation:
+        return 0, 'generation'
+    if seq < floor - 1:
+        return 0, 'below_floor'
+    if seq > high_water:
+        return 0, 'unreadable'
+    return seq, None
+
+
+def _personal_reset(reason, generation, floor):
+    return 'event: cursor-reset\ndata: ' + json.dumps(
+        {'reason': reason, 'log_generation': str(generation),
+         'floor': str(floor), 'reconcile': 'snapshot'}, separators=(',', ':')) + '\n\n'
+
+
 async def stream_inbox_events(store, identity: HouseIdentity, hub: StreamHub,
                               origin: str, popclaw_id: str, token: str,
-                              token_is_v2: bool, last_event_id: int):
-    """Private DM stream: named ``envelope`` frames, recipient-isolated.
+                              token_is_session: bool, last_event_id: int | str):
+    """Personal DM/relation stream: named envelopes, recipient-isolated.
 
     Authorization is revalidated before EVERY frame (not per batch): a v2
     token dies with its session/revision (leave, revocation, fence change,
-    expiry), and the legacy self-signed lane is only eligible while the
-    actor has never used house sessions here (reference security policy)
-    and its 60-second window still holds. Invalidation stops delivery and
-    closes the stream.
+    expiry). A named identity-read-v2 credential has its own purpose/audience
+    and 60-second window, and cannot read an actor with any sessions row in
+    this House. Both lanes close on idle ticks as well as before frames.
     """
     hub.register_stream()
     try:
         def authorized() -> bool:
-            if token_is_v2:
+            if token_is_session:
                 return sessions_mod.verify_inbox_token(
                     store, identity, origin, token, popclaw_id)
-            if sessions_mod.actor_has_session_state(store, popclaw_id):
-                return False
-            return sessions_mod.verify_legacy_inbox_token(token, popclaw_id)
+            return identity_read.inbox_status(store, token, identity, origin, popclaw_id) == 200
 
         if not authorized():
             return
 
-        last = int(last_event_id or 0)
+        relations.publish(store)
+        generation = int(store.get_meta('personal_generation'))
+        counter = store.query_one('SELECT * FROM personal_counters WHERE recipient=?', (popclaw_id,))
+        floor, high_water = (counter['floor'], counter['high_water']) if counter else (1, 0)
+        last, reset = personal_cursor(last_event_id, generation, floor, high_water)
+        if reset:
+            yield _personal_reset(reset, generation, floor)
+            return
         last_heartbeat = time.monotonic()
         while True:
             # Revalidate authorization EVERY tick, not only when frames are
@@ -747,12 +777,20 @@ async def stream_inbox_events(store, identity: HouseIdentity, hub: StreamHub,
             # expired closes on the next poll instead of heartbeating on.
             if not authorized():
                 return
-            rows = store.dm_page(popclaw_id, last, 64)
+            current_generation = int(store.get_meta('personal_generation'))
+            if current_generation != generation:
+                yield _personal_reset('generation', current_generation, 1)
+                return
+            relations.publish(store)
+            rows = store.query_all('SELECT p.seq,a.envelope_bytes FROM personal_log p '
+                                   'JOIN accepted_envelopes a USING(event_id) '
+                                   'WHERE p.generation=? AND p.recipient=? AND p.seq>? '
+                                   'ORDER BY p.seq LIMIT 64', (generation, popclaw_id, last))
             for row in rows:
                 if not authorized():  # per-frame check-to-send
                     return
                 last = int(row["seq"])
-                yield _sse_named_with_id("envelope", int(row["seq"]),
+                yield _sse_named_with_id("envelope", f'{generation}.{row["seq"]}',
                                          bytes(row["envelope_bytes"]))
             if time.monotonic() - last_heartbeat >= HEARTBEAT_SECONDS:
                 if not authorized():

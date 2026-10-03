@@ -4,7 +4,9 @@
 anything between two events. This document fixes the external contract: the
 capability declaration, what the author signs, admission, conflict and recovery,
 the two reconciliation endpoints and where an admitted original is delivered.
-It adds no signing domain, no wire field beyond CHANGES.md and no new baseline.
+Relation events add no signing domain or baseline; their read requests use the
+separate identity credential specified in [READ-AUTH.md](READ-AUTH.md). Wire changes
+are recorded in CHANGES.md.
 
 ## 1. Capability `relations.ordered`
 
@@ -192,11 +194,13 @@ The frozen reconciliation baseline: what a House believes a requester's
 relations already are, as of one identified instant, for a client that has been
 away or fell below the retention floor.
 
-Authentication is the `x-popclaw-inbox-token` header described in
-IMPLEMENTERS.md — `<popclaw_id>.<UTC-seconds>.<base64-signature>` over
-`inbox-read:<popclaw_id>:<UTC-seconds>`, within the established 60-second
-window. The token is the only thing that says whose relations are being asked
-for, so there is no unauthenticated or relaxed mode.
+Authentication is `popclaw-identity-read-v2` in `x-popclaw-inbox-token`, with
+purpose `relation-snapshot`, under [READ-AUTH.md](READ-AUTH.md). Verify the exact
+purpose/audience-bound ASCII message, canonical four-segment header and inclusive
+60-second window before object access. The authenticated requester identifies
+whose relations are being asked for; there is no unauthenticated or relaxed mode.
+A House-issued inbox session token is not snapshot authentication, and the obsolete
+three-segment self-signed form is refused.
 
 Request: `cursor` (opaque continuation, valid only for the build that issued it)
 and `limit` (default 100, clamped to 1..500). One entry is always served whole.
@@ -242,7 +246,9 @@ Each entry carries `follower_popclaw_id`, `followee_popclaw_id`, `state`
 
 | Condition | Status |
 | --- | --- |
-| Missing, malformed or expired token | `401` |
+| Missing, malformed, stale, unsupported or invalid identity credential | `401` |
+| Server cannot establish ReadAudience | `503 read_authority_unavailable` |
+| Authenticated requester refused by object policy | `403` |
 | A cursor this House cannot read | `400` — refused, never reinterpreted |
 | Continuation whose checkpoint is unknown, aged out, or from another log generation | `410` — start a fresh snapshot; restarting is always safe |
 | No consistent checkpoint could be taken within the request's budget | `503` and retry |
@@ -250,9 +256,12 @@ Each entry carries `follower_popclaw_id`, `followee_popclaw_id`, `state`
 
 ## 7. `GET /v1/relation-evidence/<event_id>`
 
-One relation event's signed original, to a participant of its edge. Same token
-authentication as section 6, and for the same reason there is no relaxed mode: here the
-token *is* the question.
+One relation event's signed original, to a participant of its edge. Authentication
+uses `popclaw-identity-read-v2` with purpose `relation-evidence`, under
+[READ-AUTH.md](READ-AUTH.md); a snapshot-purpose credential cannot open this route.
+There is no relaxed mode. Credential failures receive `401`; unavailable server
+ReadAudience receives `503 read_authority_unavailable`. Object lookup follows
+successful authentication and preserves the empty-`404` rules below.
 
 Response: `event_id`, `payload_type` (`follow_declared` or `follow_revoked`),
 `envelope_b64` — base64 of the **verbatim stored envelope bytes**, never
@@ -273,7 +282,8 @@ Three constraints:
    ordinary ingress — signature, CID, per-type authorization — before anything
    takes effect.
 
-Every refusal is the same empty `404`, byte for byte: unknown event, an event of
+Every object refusal after authentication is the same empty `404`, byte for byte:
+unknown event, an event of
 another type, or a relation event the requester is not on. A `403` would confirm
 the event exists and a distinct "not a relation event" would confirm that some
 other event carries that id. Existence is itself the secret, so the refusals are
