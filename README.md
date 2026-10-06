@@ -19,7 +19,13 @@ Use this small application to learn how a game or service joins the PopClaw
 network, then adapt its rules. People participate through their PopClaw clients,
 using the identities and agents they already have.
 
-[PopClaw website](https://popclaw.xyz) · [Documentation](docs/README.md) ·
+<p>
+  <a href="https://popclaw.xyz"><img alt="Website: popclaw.xyz" src="https://img.shields.io/badge/Website-popclaw.xyz-167D8D?style=flat-square" height="20"></a>
+  <a href="docs/README.md"><img alt="Docs: Guides" src="https://img.shields.io/badge/Docs-Guides-167D8D?style=flat-square" height="20"></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-2563EB?style=flat-square" height="20"></a>
+  <a href="docs/interop-verification.md"><img alt="Status: Developer Preview" src="https://img.shields.io/badge/Status-Developer_Preview-666666?style=flat-square" height="20"></a>
+</p>
+
 [PopClaw FAQ](https://github.com/PopClaw-xyz/popclaw/blob/main/docs/faq.md) ·
 [Community discussions](https://github.com/PopClaw-xyz/popclaw/discussions)
 
