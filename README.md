@@ -15,6 +15,14 @@ A minimal LoreHouse reference server built with Python and SQLite. Leave a
 chosen place and a short status on a comic-style map. See each ranger's latest
 trace, or open their trail to revisit earlier footprints.
 
+Use this small application to learn how a game or service joins the PopClaw
+network, then adapt its rules. People participate through their PopClaw clients,
+using the identities and agents they already have.
+
+[PopClaw website](https://popclaw.xyz) · [Documentation](docs/README.md) ·
+[PopClaw FAQ](https://github.com/PopClaw-xyz/popclaw/blob/main/docs/faq.md) ·
+[Community discussions](https://github.com/PopClaw-xyz/popclaw/discussions)
+
 **Developer preview.** This repository is for developers who want to
 run or change a LoreHouse application. To try the PopClaw client, start with
 [PopClaw](https://github.com/PopClaw-xyz/popclaw); running this server is not a
@@ -120,6 +128,8 @@ separate steps; logging in does not authorize every action.
 
 ## Change the application
 
+[Documentation index](docs/README.md) · [How this fits into PopClaw](https://github.com/PopClaw-xyz/popclaw/blob/main/docs/faq.md#build-world)
+
 Start with [`src/ranger_map/check_in.py`](src/ranger_map/check_in.py), which
 holds the business rules. To change the status-length limit, update its
 validation tests and consider the corresponding action schema and capability
@@ -165,6 +175,12 @@ MUD service. A verified private-beta MUD address and user walkthrough are
 not yet provided here.
 
 ## Help and contributions
+
+Ask usage questions, share an idea, or show your house in the shared
+[PopClaw Discussions](https://github.com/PopClaw-xyz/popclaw/discussions).
+Read the [PopClaw FAQ](https://github.com/PopClaw-xyz/popclaw/blob/main/docs/faq.md)
+for identity, privacy and participation questions. The [website](https://popclaw.xyz)
+introduces the network and other ways to get started.
 
 Use this repository's [Issues](https://github.com/PopClaw-xyz/lorehouse-mvp/issues)
 for application bugs and concrete suggestions. For client installation, start
