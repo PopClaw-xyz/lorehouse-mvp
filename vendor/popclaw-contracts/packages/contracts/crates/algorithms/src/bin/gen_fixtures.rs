@@ -98,6 +98,8 @@ fn main() -> anyhow::Result<()> {
         replace: false,
         proof_url: String::new(),
         mirror_optin: false,
+        verification_mode: 0,
+        cancel_task_id: String::new(),
     }));
     let canon_invite_request = canonicalize_envelope(&env_invite_request);
     let cid_invite_request = cid_from_canonical(&canon_invite_request);
@@ -114,6 +116,8 @@ fn main() -> anyhow::Result<()> {
             replace: false,
             proof_url: String::new(),
             mirror_optin: false,
+            verification_mode: 0,
+            cancel_task_id: String::new(),
         },
     ));
     let canon_invite_request_landing = canonicalize_envelope(&env_invite_request_landing);
@@ -130,6 +134,7 @@ fn main() -> anyhow::Result<()> {
             applicant_popclaw_id: applicant_pk_bytes.clone(),
             expected_sigil: "837a8c".into(),
             proof_url: String::new(),
+            verification_mode: 0,
         })),
     }));
     let canon_qd_verify = canonicalize_envelope(&env_qd_verify);
@@ -163,6 +168,8 @@ fn main() -> anyhow::Result<()> {
         follower_count: 0,
         avatar_url: String::new(),
         bio: String::new(),
+        verification_progress: 0,
+        progress_revision: 0,
     }));
     let canon_qr_approve = canonicalize_envelope(&env_qr_approve);
     let cid_qr_approve = cid_from_canonical(&canon_qr_approve);

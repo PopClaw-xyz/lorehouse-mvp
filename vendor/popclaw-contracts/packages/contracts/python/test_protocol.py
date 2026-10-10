@@ -34,6 +34,20 @@ class ProtocolParity(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             check(raw)
 
+    def test_invite_wait_singular_fields_report_duplicate_field(self):
+        expected = {
+            'invite_wait_duplicate_mode',
+            'invite_wait_duplicate_cancel_task',
+            'invite_wait_duplicate_dispatch_mode',
+            'invite_wait_duplicate_progress',
+            'invite_wait_duplicate_progress_revision',
+        }
+        rows = {row['name']: row for row in NEW['wire']}
+        self.assertTrue(expected <= rows.keys())
+        for name in expected:
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'DUPLICATE_FIELD'):
+                check_envelope_wire(bytes.fromhex(rows[name]['wire_hex']))
+
     def test_signed_envelope_and_wrapper(self):
         for row in NEW['signed']:
             with self.subTest(name=row['name']):

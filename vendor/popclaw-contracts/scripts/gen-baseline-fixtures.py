@@ -109,6 +109,18 @@ case('duplicate_scope',field(34,field(1,b'house.verb')+field(4,b'abcd')*2),True,
 case('invalid_kind',field(34,field(1,b'bad')),True,False)
 case('uint64_max',scalar(5,(1<<64)-1)+he,True,True)
 case('profile_declared_at_negative',field(28,scalar(7,(1<<64)-1)),True,True)
+# New wait fields are supported structure. Invalid enum values remain structurally
+# readable but are not public; duplicates are ambiguous and structurally invalid.
+case('invite_wait_request_mode_field8',field(11,field(1,b'x')+field(2,b'tester')+scalar(5,1)+scalar(8,1)),True,True)
+case('invite_wait_cancel_field9',field(11,field(1,b'x')+field(2,b'tester')+scalar(8,1)+field(9,b'task-1')),True,True)
+case('invite_wait_duplicate_mode',field(11,scalar(8,1)+scalar(8,1)),False,False)
+case('invite_wait_duplicate_cancel_task',field(11,field(9,b'task-1')+field(9,b'task-2')),False,False)
+case('invite_wait_unknown_mode',field(11,scalar(8,99)),True,False)
+case('invite_wait_dispatch_unknown_mode',field(12,field(10,scalar(6,99))),True,False)
+case('invite_wait_progress_unknown_enum',field(13,scalar(10,99)),True,False)
+case('invite_wait_duplicate_progress',field(13,scalar(10,1)+scalar(10,2)),False,False)
+case('invite_wait_duplicate_dispatch_mode',field(12,field(10,scalar(6,1)+scalar(6,1))),False,False)
+case('invite_wait_duplicate_progress_revision',field(13,scalar(11,1)+scalar(11,2)),False,False)
 
 seed = bytes(range(32))
 key = Ed25519PrivateKey.from_private_bytes(seed)
@@ -154,9 +166,72 @@ for name in ['unknown_business_signed','profile_signed','optional_presence_signe
                        public_key_hex=pub.hex(),signer_seed_hex=seed.hex(),
                        signed_payload_hex=wrapper.SerializeToString(deterministic=True).hex()))
 
+# Deterministic signed vectors pin all five new fields. The first matches the
+# House invite_wait_test::signed_push_body helper exactly: seed [91; 32], actor
+# nickname Someone, timestamp 1713657600, and the original x/tester request.
+def finish_signed(name, env, signer_seed):
+    signer = Ed25519PrivateKey.from_private_bytes(signer_seed)
+    signer_pub = signer.public_key().public_bytes(Encoding.Raw,PublicFormat.Raw)
+    canonical = canonical_envelope(env)
+    env.event_id = hashlib.sha256(canonical).hexdigest()
+    env.signature = signer.sign(canonical)
+    raw = env.SerializeToString(deterministic=True)
+    wrapper = message_type('popclaw.identity.SignedPayload')()
+    wrapper.payload = raw
+    wrapper.signer_pubkey = signer_pub
+    wrapper.signature = signer.sign(raw)
+    return dict(name=name, canonical_hex=canonical.hex(), cid=env.event_id,
+                wire_hex=raw.hex(), signature_hex=env.signature.hex(),
+                public_key_hex=signer_pub.hex(), signer_seed_hex=signer_seed.hex(),
+                signed_payload_hex=wrapper.SerializeToString(deterministic=True).hex())
+
+wait_seed = bytes([91]) * 32
+wait_env = Env()
+wait_pub = Ed25519PrivateKey.from_private_bytes(wait_seed).public_key().public_bytes(Encoding.Raw,PublicFormat.Raw)
+wait_env.actor.popclaw_id = b58(wait_pub)
+wait_env.actor.nickname = 'Someone'
+wait_env.timestamp = 1713657600
+wait_env.invite_request.platform = 'x'
+wait_env.invite_request.handle = 'tester'
+wait_env.invite_request.replace = True
+wait_env.invite_request.verification_mode = 1
+signed.append(finish_signed('invite_wait_request_house_helper', wait_env, wait_seed))
+
+cancel_env = Env()
+cancel_env.actor.popclaw_id = b58(wait_pub)
+cancel_env.actor.nickname = 'Someone'
+cancel_env.timestamp = 1713657601
+cancel_env.invite_request.platform = 'x'
+cancel_env.invite_request.handle = 'tester'
+cancel_env.invite_request.verification_mode = 1
+cancel_env.invite_request.cancel_task_id = '00000000-0000-4000-8000-000000000001'
+signed.append(finish_signed('invite_wait_cancel_signed', cancel_env, wait_seed))
+
+dispatch_env = Env()
+dispatch_env.actor.popclaw_id = b58(wait_pub)
+dispatch_env.actor.nickname = 'House'
+dispatch_env.timestamp = 1713657602
+dispatch_env.quest_dispatch.task_id = '00000000-0000-4000-8000-000000000001'
+dispatch_env.quest_dispatch.kind = 1
+dispatch_env.quest_dispatch.verify_invite.platform = 'x'
+dispatch_env.quest_dispatch.verify_invite.handle = 'tester'
+dispatch_env.quest_dispatch.verify_invite.applicant_popclaw_id = wait_pub
+dispatch_env.quest_dispatch.verify_invite.expected_sigil = '837a8c00'
+dispatch_env.quest_dispatch.verify_invite.verification_mode = 1
+signed.append(finish_signed('invite_wait_dispatch_signed', dispatch_env, wait_seed))
+
+progress_env = Env()
+progress_env.actor.popclaw_id = b58(wait_pub)
+progress_env.actor.nickname = 'Ranger'
+progress_env.timestamp = 1713657603
+progress_env.quest_result.task_id = '00000000-0000-4000-8000-000000000001'
+progress_env.quest_result.verification_progress = 2
+progress_env.quest_result.progress_revision = 1
+signed.append(finish_signed('invite_wait_ready_progress_signed', progress_env, wait_seed))
+
 manifest={'world_interaction':{'version':1,'public_stream':{'endpoint':'/v1/world-stream',
           'mode':'public-v1','log_incarnation':'log-fixture-1','initial_public_scopes':[],
-          'envelope_baseline':'public-envelope-01'}}}
+          'envelope_baseline':'public-envelope-02'}}}
 manifest_bytes=json.dumps(manifest,separators=(',',':')).encode()
 proof=message_type('popclaw.world.ManifestProof')()
 proof.house.origin='https://house.example'
@@ -182,5 +257,5 @@ reserved_signed={'canonical_hex':reserved_core.hex(),'cid':reserved_cid,
                  'public_key_hex':pub.hex()}
 
 out = ROOT/'packages/contracts/fixtures/public-baseline.json'
-out.write_text(json.dumps({'baseline':'public-envelope-01','wire':rows,'signed':signed,'manifest':manifest_vector,'signed_reserved':reserved_signed},indent=2)+'\n')
+out.write_text(json.dumps({'baseline':'public-envelope-02','wire':rows,'signed':signed,'manifest':manifest_vector,'signed_reserved':reserved_signed},indent=2)+'\n')
 print(f'Generated {len(rows)} wire and {len(signed)} signing vectors')

@@ -1,22 +1,28 @@
 # Ordered relations and current-client reads
 
-This local candidate implements the sealed `.01.7` relation body, author
+This local candidate implements the sealed `.02.0` relation body, author
 signatures, CID, House namespace, sequence domain, fork/recovery and private
 delivery rules and the named identity-read-v2 authentication scheme. Vendored
-members are the exact controlled copy of the locally accepted `.01.7` object.
+members are the exact controlled copy of the fixed `.02.0` object.
 
 ## Version binding and provenance
 
-The sealed [READ-AUTH.md](../vendor/popclaw-contracts/packages/contracts/protocol/public-envelope-01/READ-AUTH.md)
-defines `popclaw-identity-read-v2` and its four purposes. `.01.7` aligns the
-earlier RELATIONS/IMPLEMENTERS token paragraphs with this existing scheme;
-protobuf, author signing, CID and shared codecs remain unchanged.
+The sealed [READ-AUTH.md](../vendor/popclaw-contracts/packages/contracts/protocol/public-envelope-02/READ-AUTH.md)
+defines `popclaw-identity-read-v2` and its four purposes. The historical
+`.01.7` read-auth clarification is retained in `.02.0`. The new baseline
+adds signed invite/quest fields; see the sealed
+[compatibility changes](../vendor/popclaw-contracts/packages/contracts/protocol/public-envelope-02/CHANGES.md).
 
-The imported object is commit `37db76d8573e9931c24671a05a89ec606cbfab06`,
-protocol subtree `8f1745ed5be08a16248b88c7705dfdff4d5b70ea`, 273 members,
-bundle SHA-256 `f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec`.
-The verifier checks the independently accepted pin. Local integration
-acceptance does not establish public release or client/runtime acceptance.
+The bundle source is fixed client commit `6c3235a6d82932126725969a5d6784c19208aa96`,
+protocol subtree `cbd331975598ad2340f4011904cf9c49e48119ed`, 273 members,
+bundle SHA-256 `c530e69b51dcf8358b0e239b67d936dc9443ba7cad1f59b34b34520ad5e11337`.
+The verifier checks this fixed pin. Fixed reference `597df3b` and client
+`6c3235a` passed local public-stream, Profile and relation pairing, with
+independent review approved. See the [current acceptance scope](protocol-bindings.md#current-local-acceptance-2026-10-11).
+This does not establish publication, deployment or DM sending.
+
+The inputs below retain the historical relation-read verification scope;
+they are not a new pairing result for `.02.0`.
 
 | Fixed input | SHA-256 |
 | --- | --- |
@@ -148,9 +154,9 @@ calls normal MCP login/name/follow/unfollow/draft tools, verifies received
 author bytes, and exits without sending the draft. `--development-dirty`
 reports a development probe and cannot establish a fixed candidate.
 
-The upstream text alignment is now sealed and imported once against the
-accepted digest. Both the historical synthetic vectors above and the sealed
-`.01.7` fixture are independently reconstructed in the tests. Same-root
+The `.02.0` bundle is pinned by the digest above. Both the historical
+synthetic vectors above and the retained sealed relation-read fixture are
+independently reconstructed in the tests. Same-root
 manifest/guide refresh uses only the explicit normal maintenance command in
 [the operator guide](guide.md#house-administration); ordinary boot preserves
 the old pins. This candidate has not restored or restarted an existing test

@@ -3,7 +3,7 @@
 import json
 from bundle_files import ROOT,entries,digest
 rows=entries()
-manifest={'protocol_version':'0.1.0-public-envelope-01.7','envelope_baseline':'public-envelope-01',
+manifest={'protocol_version':'0.1.0-public-envelope-02.0','envelope_baseline':'public-envelope-02',
           'digest_algorithm':'sha256(sorted(file_sha256 + "  " + relative_path + "\\n"))',
           'bundle_sha256':digest(rows),'files':rows}
 (ROOT/'CONTRACT-MANIFEST.json').write_text(json.dumps(manifest,indent=2)+'\n')

@@ -31,6 +31,23 @@ fn original_wire_positive_and_adversarial_matrix() {
     }
 }
 #[test]
+fn invite_wait_singular_fields_report_duplicate_field() {
+    let all = vectors();
+    for name in [
+        "invite_wait_duplicate_mode",
+        "invite_wait_duplicate_cancel_task",
+        "invite_wait_duplicate_progress",
+        "invite_wait_duplicate_dispatch_mode",
+        "invite_wait_duplicate_progress_revision",
+    ] {
+        let v = all["wire"]
+            .as_array().unwrap().iter()
+            .find(|v| v["name"] == name).unwrap_or_else(|| panic!("missing vector {name}"));
+        let raw = hex::decode(v["wire_hex"].as_str().unwrap()).unwrap();
+        assert_eq!(check_envelope_wire(&raw), Err("DUPLICATE_FIELD"), "{name}");
+    }
+}
+#[test]
 fn shared_signed_bytes_cid_signature_and_outer_wrapper() {
     for v in vectors()["signed"].as_array().unwrap() {
         let raw = hex::decode(v["wire_hex"].as_str().unwrap()).unwrap();

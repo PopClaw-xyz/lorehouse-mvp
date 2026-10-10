@@ -84,7 +84,7 @@ them alone proves business drain under this capability.
 
 ## 4. Public stream (`GET /v1/world-stream?mode=public-v1`)
 
-See [PUBLIC-STREAM.md](../public-envelope-01/PUBLIC-STREAM.md) for exact
+See [PUBLIC-STREAM.md](../public-envelope-02/PUBLIC-STREAM.md) for exact
 request grammar, the safe `public_gap` reason/lane matrix, and close semantics.
 Malformed requests return 400; a declared but unready selected mode returns
 409 `PUBLIC_STREAM_UNAVAILABLE`. The legacy endpoint receives no new controls.

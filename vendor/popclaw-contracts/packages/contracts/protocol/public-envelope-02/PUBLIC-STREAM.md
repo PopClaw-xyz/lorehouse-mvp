@@ -1,10 +1,10 @@
 # Complete public facts with optional scope progress
 
-Normative public-envelope-01 candidate. `public-v1` is the single revised first-release optional mode. The old unqualified endpoint retains its published wire format for existing clients. Original EventEnvelope bytes/CID/signature remain unchanged.
+Normative public-envelope-02 candidate. `public-v1` is the single revised first-release optional mode. The old unqualified endpoint retains its published wire format for existing clients. Original EventEnvelope bytes/CID/signature remain unchanged.
 
 ## 1. Negotiation and exact request
 
-The authenticated block MUST declare `envelope_baseline=public-envelope-01`. The declaration covers the complete safe public set admitted under this baseline in this log incarnation, not every structure accepted by any historical implementation. Missing or different baseline is unsupported. See BASELINE.md for mandatory raw-wire checks and log transitions.
+The authenticated block MUST declare `envelope_baseline=public-envelope-02`. The declaration covers the complete safe public set admitted under this baseline in this log incarnation, not every structure accepted by any historical implementation. Missing or different baseline is unsupported. See BASELINE.md for mandatory raw-wire checks and log transitions. Tags 11, 12, and 13 include the additive invite-wait fields in this baseline; readers must preserve their complete original signed bytes.
 
 Select only from the valid, authenticated `world_interaction.public_stream` block specified in SPEC.md. A public-only block needs no actions, guide, session ACK, result key or worker. The existing trusted pin/HouseBinding and detached complete-manifest proof still apply. An independently selected safe ordinary legacy path may remain available, with the same client raw-wire checks at all boundaries; switching a resource first stops/joins its current sole receiver. Failure after selecting this mode is a failed selected subscription, not an automatic fallback or second socket.
 

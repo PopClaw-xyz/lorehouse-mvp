@@ -33,13 +33,13 @@ def test_vendor_pin_matches_trusted_digest():
 
 
 def test_vendored_bridge_suite_passes_in_our_venv():
-    """The bundle's own Python parity suite runs unchanged here (26 tests)."""
+    """The bundle's own Python parity suite runs unchanged here (27 tests)."""
     runner = unittest.TextTestRunner(stream=open("/dev/null", "w"))
     loader = unittest.TestLoader()
     suite = loader.discover(str(VENDOR / "packages" / "contracts" / "python"),
                             pattern="test_*.py")
     result = runner.run(suite)
-    assert result.testsRun == 26, result.testsRun
+    assert result.testsRun == 27, result.testsRun
     assert len(result.failures) == 0 and len(result.errors) == 0
 
 

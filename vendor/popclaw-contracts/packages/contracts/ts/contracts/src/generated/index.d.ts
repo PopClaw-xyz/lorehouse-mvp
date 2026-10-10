@@ -3037,6 +3037,12 @@ export namespace popclaw {
     /** Namespace invite. */
     namespace invite {
 
+        /** InviteVerificationMode enum. */
+        enum InviteVerificationMode {
+            INVITE_VERIFICATION_MODE_LOOKUP_ONCE = 0,
+            INVITE_VERIFICATION_MODE_WAIT_NEW_POST = 1
+        }
+
         /** Properties of an InviteRequest. */
         interface IInviteRequest {
 
@@ -3060,6 +3066,12 @@ export namespace popclaw {
 
             /** InviteRequest mirrorOptin */
             mirrorOptin?: (boolean|null);
+
+            /** InviteRequest verificationMode */
+            verificationMode?: (popclaw.invite.InviteVerificationMode|null);
+
+            /** InviteRequest cancelTaskId */
+            cancelTaskId?: (string|null);
         }
 
         /** Represents an InviteRequest. */
@@ -3091,6 +3103,12 @@ export namespace popclaw {
 
             /** InviteRequest mirrorOptin. */
             public mirrorOptin: boolean;
+
+            /** InviteRequest verificationMode. */
+            public verificationMode: popclaw.invite.InviteVerificationMode;
+
+            /** InviteRequest cancelTaskId. */
+            public cancelTaskId: string;
 
             /**
              * Creates a new InviteRequest instance using the specified properties.
@@ -3280,6 +3298,14 @@ export namespace popclaw {
             QUEST_OUTCOME_ABSTAIN = 3
         }
 
+        /** InviteVerificationProgress enum. */
+        enum InviteVerificationProgress {
+            INVITE_VERIFICATION_PROGRESS_UNSPECIFIED = 0,
+            INVITE_VERIFICATION_PROGRESS_PREPARING = 1,
+            INVITE_VERIFICATION_PROGRESS_READY = 2,
+            INVITE_VERIFICATION_PROGRESS_RECOVERING = 3
+        }
+
         /** Properties of a VerifyInvitePayload. */
         interface IVerifyInvitePayload {
 
@@ -3297,6 +3323,9 @@ export namespace popclaw {
 
             /** VerifyInvitePayload proofUrl */
             proofUrl?: (string|null);
+
+            /** VerifyInvitePayload verificationMode */
+            verificationMode?: (popclaw.invite.InviteVerificationMode|null);
         }
 
         /** Represents a VerifyInvitePayload. */
@@ -3322,6 +3351,9 @@ export namespace popclaw {
 
             /** VerifyInvitePayload proofUrl. */
             public proofUrl: string;
+
+            /** VerifyInvitePayload verificationMode. */
+            public verificationMode: popclaw.invite.InviteVerificationMode;
 
             /**
              * Creates a new VerifyInvitePayload instance using the specified properties.
@@ -3597,6 +3629,12 @@ export namespace popclaw {
 
             /** QuestResult bio */
             bio?: (string|null);
+
+            /** QuestResult verificationProgress */
+            verificationProgress?: (popclaw.quest.InviteVerificationProgress|null);
+
+            /** QuestResult progressRevision */
+            progressRevision?: (number|Long|null);
         }
 
         /** Represents a QuestResult. */
@@ -3634,6 +3672,12 @@ export namespace popclaw {
 
             /** QuestResult bio. */
             public bio: string;
+
+            /** QuestResult verificationProgress. */
+            public verificationProgress: popclaw.quest.InviteVerificationProgress;
+
+            /** QuestResult progressRevision. */
+            public progressRevision: (number|Long);
 
             /**
              * Creates a new QuestResult instance using the specified properties.

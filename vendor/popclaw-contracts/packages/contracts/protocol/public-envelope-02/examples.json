@@ -7,7 +7,7 @@
       "mode": "public-v1",
       "log_incarnation": "example_log",
       "initial_public_scopes": [],
-      "envelope_baseline": "public-envelope-01"
+      "envelope_baseline": "public-envelope-02"
     }
   },
   "manual_action": {

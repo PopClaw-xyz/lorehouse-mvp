@@ -37,7 +37,7 @@ required installation step.
 This candidate also implements ordered follow/unfollow, personal relation
 delivery, frozen reconciliation and Profile-based person lookup. Read
 [the current-client binding](docs/relations-client-binding.md) before testing.
-The `.01.7` bundle seals the named identity-read-v2 scheme and independent
+The `.02.0` bundle includes the named identity-read-v2 scheme and independent
 session-token inbox lane. A fresh data root creates the new manifest and
 guide pins. Existing pins change only through the explicit
 [offline maintenance command](docs/guide.md#house-administration).
@@ -156,18 +156,21 @@ python -m pytest -q tests
 
 The protocol has one authoritative home:
 [`popclaw/packages/contracts/`](https://github.com/PopClaw-xyz/popclaw/tree/main/packages/contracts).
-This server consumes a controlled copy of **0.1.0-public-envelope-01.7** under
+This server consumes a controlled copy of **0.1.0-public-envelope-02.0** under
 `vendor/popclaw-contracts/`, with its trusted digest recorded in the binding
 guide. Do not hand-edit a second specification or automatically follow a
 different branch. The shared codecs and algorithms are not a complete SDK.
 
 ## Verification
 
-The real two-phase interoperability run passed for client `11fbca5` and
+The historical two-phase interoperability run passed for client `11fbca5` and
 reference server `f17c894`, including ordinary restart, signed check-ins,
 receipt replay, public events and ordinary encrypted DMs. Later server
 cutover changes received separate review and targeted tests. The full run
-was not performed at the later revision.
+was not performed at the later revision. Separately, the fixed `.02.0` client `6c3235a` and reference server
+`597df3b` passed local public-stream, Profile and relation pairing. See the
+[current acceptance scope](docs/protocol-bindings.md#current-local-acceptance-2026-10-11);
+this does not establish deployment, world-action execution or DM sending.
 
 See the [verification record](docs/interop-verification.md) for full commit
 identities and limits. Passing this combination does not establish every

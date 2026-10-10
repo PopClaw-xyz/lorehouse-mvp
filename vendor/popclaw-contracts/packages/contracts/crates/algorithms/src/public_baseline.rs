@@ -11,7 +11,7 @@ use std::{
     sync::OnceLock,
 };
 
-pub const ENVELOPE_BASELINE: &str = "public-envelope-01";
+pub const ENVELOPE_BASELINE: &str = "public-envelope-02";
 fn schema() -> &'static BTreeMap<String, DescriptorProto> {
     static SCHEMA: OnceLock<BTreeMap<String, DescriptorProto>> = OnceLock::new();
     SCHEMA.get_or_init(|| {
@@ -182,6 +182,22 @@ pub fn check_public_envelope_structure(raw: &[u8]) -> Result<u32, &'static str> 
         if (t.scope == 0 && !t.target_ids.is_empty()) || (t.scope == 2 && t.target_ids.is_empty()) {
             return Err("INVALID_TARGET");
         }
+    }
+    match &env.body {
+        Some(Body::InviteRequest(request)) if ![0, 1].contains(&request.verification_mode) => {
+            return Err("INVALID_ENUM");
+        }
+        Some(Body::QuestDispatch(dispatch)) => {
+            if let Some(popclaw_contracts::quest::quest_dispatch::Quest::VerifyInvite(payload)) = &dispatch.quest {
+                if ![0, 1].contains(&payload.verification_mode) {
+                    return Err("INVALID_ENUM");
+                }
+            }
+        }
+        Some(Body::QuestResult(result)) if ![0, 1, 2, 3].contains(&result.verification_progress) => {
+            return Err("INVALID_ENUM");
+        }
+        _ => (),
     }
     match &env.body {
         Some(Body::HouseEvent(h)) => {

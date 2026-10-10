@@ -71,7 +71,7 @@
           "uniqueItems": true
         },
         "envelope_baseline": {
-          "const": "public-envelope-01"
+          "const": "public-envelope-02"
         }
       },
       "required": [

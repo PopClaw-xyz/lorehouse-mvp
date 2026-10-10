@@ -1,7 +1,7 @@
 import protobuf from 'protobufjs';
 import descriptor from '@popclaw/contracts/descriptor';
 
-export const ENVELOPE_BASELINE = 'public-envelope-01';
+export const ENVELOPE_BASELINE = 'public-envelope-02';
 const schema = protobuf.Root.fromJSON(descriptor as protobuf.INamespace).resolveAll();
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const varints = new Set(['int32','uint32','sint32','int64','uint64','sint64','bool']);
@@ -105,6 +105,14 @@ export function checkPublicEnvelopeStructure(raw: Uint8Array): number {
     if ((env.target.scope ?? 0) === 0 && (env.target.targetIds?.length ?? 0)>0) throw new Error('INVALID_TARGET');
     if (env.target.scope === 2 && !(env.target.targetIds?.length)) throw new Error('INVALID_TARGET');
   }
+  const typedEnv = env as typeof env & {
+    inviteRequest?: {verificationMode?: number};
+    questDispatch?: {verifyInvite?: {verificationMode?: number}};
+    questResult?: {verificationProgress?: number};
+  };
+  if (typedEnv.inviteRequest && ![0,1].includes(typedEnv.inviteRequest.verificationMode ?? 0)) throw new Error('INVALID_ENUM');
+  if (typedEnv.questDispatch?.verifyInvite && ![0,1].includes(typedEnv.questDispatch.verifyInvite.verificationMode ?? 0)) throw new Error('INVALID_ENUM');
+  if (typedEnv.questResult && ![0,1,2,3].includes(typedEnv.questResult.verificationProgress ?? 0)) throw new Error('INVALID_ENUM');
   if (env.houseEvent) {
     const {kind, publicScopes = []} = env.houseEvent;
     if (kind.length > 128 || !/^[a-z0-9-]+\.[a-z0-9_]+$/.test(kind)) throw new Error('INVALID_KIND');

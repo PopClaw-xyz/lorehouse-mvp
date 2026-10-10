@@ -1,6 +1,12 @@
 syntax = "proto3";
 package popclaw.invite;
 
+// Selects the invite proof path. Zero preserves the legacy single-lookup path.
+enum InviteVerificationMode {
+  INVITE_VERIFICATION_MODE_LOOKUP_ONCE = 0;
+  INVITE_VERIFICATION_MODE_WAIT_NEW_POST = 1;
+}
+
 // Applicant-signed invite request event payload.
 // Published as EventEnvelope { body: invite_request }.
 // Outer signer_pubkey MUST match actor.popclaw_id (self-signed).
@@ -21,6 +27,13 @@ message InviteRequest {
   // Explicit consent to synchronize future posts. Default false means no mirroring.
   // Synchronization is forward-only and never backfills historical posts. Omit false.
   bool mirror_optin = 7;
+  // WAIT_NEW_POST arms a ranger before the applicant publishes an X proof post.
+  // Mutually exclusive with proof_url. Zero elides for legacy CID compatibility.
+  InviteVerificationMode verification_mode = 8;
+  // Owner-signed cancellation of an existing wait task without creating a task or
+  // changing a verified profile. Requires WAIT_NEW_POST and the exact original
+  // platform/handle. The receipt carries this task id; outcome is CANCELLED.
+  string cancel_task_id = 9;
 }
 
 // LoreHouse-signed milestone event when an invite reaches APPROVED quorum.

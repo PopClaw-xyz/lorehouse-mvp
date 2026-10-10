@@ -7,7 +7,7 @@ canonical codec is hand-rolled here), and adds the small Ed25519 layer this
 server needs on top of ``cryptography``.
 
 All signing domains and canonical-byte rules come from the bundle's
-``protocol/public-envelope-01/SIGNING.md``; the retained vectors pin them.
+``protocol/public-envelope-02/SIGNING.md``; the retained vectors pin them.
 """
 
 from __future__ import annotations

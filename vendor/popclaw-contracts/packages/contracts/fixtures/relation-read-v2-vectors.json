@@ -1,5 +1,5 @@
 {
-  "contract": "packages/contracts/protocol/public-envelope-01/READ-AUTH.md",
+  "contract": "packages/contracts/protocol/public-envelope-02/READ-AUTH.md",
   "domain": "popclaw-identity-read-v2",
   "house_a_key": "5fwyfpnobtTSxd6v3Mo7r991QfqX9sQ2rBJWL6ai2TSn",
   "house_b_key": "BqPR9LdPgbyjdPfSxUmmhGKURmsScrYXUbtDp6E7FDit",

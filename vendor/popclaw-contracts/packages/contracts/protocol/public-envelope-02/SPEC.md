@@ -1,6 +1,6 @@
 # Revised first-release interaction contract
 
-Version: 0.1.0-public-envelope-01.7. Candidate for implementer review; not runtime acceptance or publication approval.
+Version: 0.1.0-public-envelope-02.0. Candidate for implementer review; not runtime acceptance or publication approval.
 
 ## 1. Scope
 

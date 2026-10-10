@@ -148,7 +148,7 @@ def test_manifest_served_with_valid_proof(house):
     assert manifest["house_session"]["lease_seconds"] == 90
     board = manifest["world_interaction"]
     assert board["version"] == 1
-    assert board["public_stream"]["envelope_baseline"] == "public-envelope-01"
+    assert board["public_stream"]["envelope_baseline"] == "public-envelope-02"
     assert board["public_stream"]["mode"] == "public-v1"
     assert board["actions"]["kinds"] == ["rangermap.check_in"]
     assert board["actions"]["attachments"] == []

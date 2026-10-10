@@ -146,12 +146,10 @@ def test_envelope_limit_is_the_01_4_bound(house):
 
 # --- the three public exits --------------------------------------------------
 #
-# A relation original can no longer arrive through ingress, so these tests
-# seed one the way an earlier `.01.3` build would have: numbered into the
-# durable public log, between two ordinary public events. Its original bytes
-# and CID are left exactly as they are and the log keeps its consecutive
-# numbering, so the index-completeness check stays meaningful; the exits are
-# what withhold it. Each exit must also keep reading past it.
+# Ordinary relation ingress is personal-only. These tests deliberately
+# bypass publication into a fresh log. The unsupported public member must
+# close each public exit without bytes or checkpoints crossing that row;
+# all stored originals and sequence associations stay intact.
 
 
 def _seed_relation_row(house, actor, followee, *, corrupt_index=False) -> str:
@@ -212,7 +210,7 @@ def _frames(events):
             for name, data in events if name == "public_frame"]
 
 
-def test_replay_exit_withholds_a_relation_and_keeps_reading(house):
+def test_replay_exit_closes_at_unsupported_relation(house):
     yun, mira, ezra = Actor("Yun"), Actor("Mira"), Actor("Ezra")
     first = _seed_post(house, yun, "before the relation")
     hidden = _seed_relation_row(house, mira, ezra)
@@ -225,23 +223,21 @@ def test_replay_exit_withholds_a_relation_and_keeps_reading(house):
         max_events=4)
     names = [name for name, _ in events]
     assert names[0] == "public_boundary"
-    assert "public_gap" not in names
+    assert names == ["public_boundary", "public_gap"]
 
     delivered = _frames(events)
-    assert [frame.seq for frame in delivered] == [1, 3]
-    assert {wire.envelope_cid(frame.envelope) for frame in delivered} == {
-        first, later}
+    assert delivered == []  # the whole invalid page is withheld
     assert hidden not in {wire.envelope_cid(f.envelope) for f in delivered}
 
-    # The checkpoint still certifies coverage THROUGH the skipped row, so a
-    # client resuming from it is not sent back and the cursor never stalls.
+    # No checkpoint certifies coverage over the unsupported public member.
     checkpoint = [data for name, data in events if name == "public_checkpoint"]
-    assert checkpoint, names
-    parsed = wire.PublicStreamCheckpoint.FromString(checkpoint[0])
-    assert parsed.public_through_seq == 3
+    assert checkpoint == []
+    gap = wire.PublicStreamGap.FromString(events[-1][1])
+    assert gap.reason == "public_log_invalid"
+    assert house.store.public_log_high_water(house.state.log_incarnation) == 3
 
 
-def test_live_exit_withholds_a_relation_and_keeps_reading(house):
+def test_live_exit_closes_at_unsupported_relation(house):
     yun, mira, ezra = Actor("Yun"), Actor("Mira"), Actor("Ezra")
     _seed_post(house, yun, "replayed")
     injected = {}
@@ -257,14 +253,15 @@ def test_live_exit_withholds_a_relation_and_keeps_reading(house):
                                          house.state.registered_scopes),
         max_events=5, between=after_checkpoint)
     assert injected, "the live phase was never reached"
-    assert "public_gap" not in [name for name, _ in events]
+    assert events[-1][0] == "public_gap"
+    assert wire.PublicStreamGap.FromString(events[-1][1]).reason == "public_log_invalid"
 
     delivered = {wire.envelope_cid(frame.envelope) for frame in _frames(events)}
     assert injected["relation"] not in delivered
-    assert injected["post"] in delivered
+    assert injected["post"] not in delivered
 
 
-def test_legacy_exit_withholds_a_relation_and_keeps_reading(house):
+def test_legacy_exit_closes_at_unsupported_relation(house):
     yun, mira, ezra = Actor("Yun"), Actor("Mira"), Actor("Ezra")
     first = _seed_post(house, yun, "legacy before")
     hidden = _seed_relation_row(house, mira, ezra)
@@ -273,9 +270,9 @@ def test_legacy_exit_withholds_a_relation_and_keeps_reading(house):
     events = _drive(streams_mod.stream_legacy_events(house.hub, 0),
                     max_events=2)
     frames = [wire.WorldStreamFrame.FromString(data) for _, data in events]
-    assert [frame.seq for frame in frames] == [1, 3]
+    assert frames == []
     cids = {wire.envelope_cid(frame.envelope) for frame in frames}
-    assert cids == {first, later}
+    assert cids == set()
     assert hidden not in cids
 
 
@@ -368,15 +365,9 @@ def test_a_maximal_event_really_reads_back_through_the_public_lane(house):
 
 
 def test_the_sealed_predicate_and_this_house_both_exclude_relations(house):
-    """Two layers now say no, and this server must not depend on either.
-
-    Since `.01.6` the sealed public predicate omits tags 20/21 outright, so
-    a relation original is no longer publicly eligible at the contract
-    layer either. This server decides relation-ness from the structural
-    decode instead, which is what keeps a stored relation original a
-    withheld row rather than an "invalid public row" that would close every
-    reader's connection — the exit tests above cover that against the real
-    sealed guard, with no simulation.
+    """Relations retain ordinary signed wire capability and personal
+    admission, while the shared predicate excludes every public original.
+    A public-log bypass fails closed, as the real exit tests above prove.
     """
     mira, ezra = Actor("Mira"), Actor("Ezra")
     for revoke in (False, True):

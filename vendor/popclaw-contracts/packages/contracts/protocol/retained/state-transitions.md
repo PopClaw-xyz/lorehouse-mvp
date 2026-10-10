@@ -1,9 +1,9 @@
 # State transitions and invariants — world interaction v1
 
 Retained action/authority invariants, subject to the current
-[baseline](../public-envelope-01/BASELINE.md),
-[stream](../public-envelope-01/PUBLIC-STREAM.md) and
-[receipt](../public-envelope-01/RECEIPTS.md) rules. Optional execution and
+[baseline](../public-envelope-02/BASELINE.md),
+[stream](../public-envelope-02/PUBLIC-STREAM.md) and
+[receipt](../public-envelope-02/RECEIPTS.md) rules. Optional execution and
 participation definitions do not establish runtime availability.
 
 ## 1. Action lifecycle (server)
@@ -230,7 +230,7 @@ business quota is separately authoritative.
 
 ## 6. Public stream cursor lifecycle
 
-Use [PUBLIC-STREAM.md](../public-envelope-01/PUBLIC-STREAM.md) exclusively:
+Use [PUBLIC-STREAM.md](../public-envelope-02/PUBLIC-STREAM.md) exclusively:
 `mode=public-v1`, public_boundary/public_frame/public_checkpoint/public_gap,
 independent full-public and signed-scope progress, exact raw-byte admission and
 immutable baseline/log binding. Earlier scoped transport generations are not

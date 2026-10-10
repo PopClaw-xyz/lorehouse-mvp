@@ -9369,6 +9369,20 @@ export const popclaw = $root.popclaw = (() => {
          */
         const invite = {};
 
+        /**
+         * InviteVerificationMode enum.
+         * @name popclaw.invite.InviteVerificationMode
+         * @enum {number}
+         * @property {number} INVITE_VERIFICATION_MODE_LOOKUP_ONCE=0 INVITE_VERIFICATION_MODE_LOOKUP_ONCE value
+         * @property {number} INVITE_VERIFICATION_MODE_WAIT_NEW_POST=1 INVITE_VERIFICATION_MODE_WAIT_NEW_POST value
+         */
+        invite.InviteVerificationMode = (function() {
+            const valuesById = {}, values = Object.create(valuesById);
+            values[valuesById[0] = "INVITE_VERIFICATION_MODE_LOOKUP_ONCE"] = 0;
+            values[valuesById[1] = "INVITE_VERIFICATION_MODE_WAIT_NEW_POST"] = 1;
+            return values;
+        })();
+
         invite.InviteRequest = (function() {
 
             /**
@@ -9382,6 +9396,8 @@ export const popclaw = $root.popclaw = (() => {
              * @property {boolean|null} [replace] InviteRequest replace
              * @property {string|null} [proofUrl] InviteRequest proofUrl
              * @property {boolean|null} [mirrorOptin] InviteRequest mirrorOptin
+             * @property {popclaw.invite.InviteVerificationMode|null} [verificationMode] InviteRequest verificationMode
+             * @property {string|null} [cancelTaskId] InviteRequest cancelTaskId
              */
 
             /**
@@ -9456,6 +9472,22 @@ export const popclaw = $root.popclaw = (() => {
             InviteRequest.prototype.mirrorOptin = false;
 
             /**
+             * InviteRequest verificationMode.
+             * @member {popclaw.invite.InviteVerificationMode} verificationMode
+             * @memberof popclaw.invite.InviteRequest
+             * @instance
+             */
+            InviteRequest.prototype.verificationMode = 0;
+
+            /**
+             * InviteRequest cancelTaskId.
+             * @member {string} cancelTaskId
+             * @memberof popclaw.invite.InviteRequest
+             * @instance
+             */
+            InviteRequest.prototype.cancelTaskId = "";
+
+            /**
              * Creates a new InviteRequest instance using the specified properties.
              * @function create
              * @memberof popclaw.invite.InviteRequest
@@ -9497,6 +9529,10 @@ export const popclaw = $root.popclaw = (() => {
                     writer.uint32(/* id 6, wireType 2 =*/50).string(message.proofUrl);
                 if (message.mirrorOptin != null && Object.hasOwnProperty.call(message, "mirrorOptin"))
                     writer.uint32(/* id 7, wireType 0 =*/56).bool(message.mirrorOptin);
+                if (message.verificationMode != null && Object.hasOwnProperty.call(message, "verificationMode"))
+                    writer.uint32(/* id 8, wireType 0 =*/64).int32(message.verificationMode);
+                if (message.cancelTaskId != null && Object.hasOwnProperty.call(message, "cancelTaskId"))
+                    writer.uint32(/* id 9, wireType 2 =*/74).string(message.cancelTaskId);
                 return writer;
             };
 
@@ -9562,6 +9598,14 @@ export const popclaw = $root.popclaw = (() => {
                             message.mirrorOptin = reader.bool();
                             break;
                         }
+                    case 8: {
+                            message.verificationMode = reader.int32();
+                            break;
+                        }
+                    case 9: {
+                            message.cancelTaskId = reader.string();
+                            break;
+                        }
                     default:
                         reader.skipType(tag & 7, long);
                         break;
@@ -9607,6 +9651,24 @@ export const popclaw = $root.popclaw = (() => {
                     message.proofUrl = String(object.proofUrl);
                 if (object.mirrorOptin != null)
                     message.mirrorOptin = Boolean(object.mirrorOptin);
+                switch (object.verificationMode) {
+                default:
+                    if (typeof object.verificationMode === "number") {
+                        message.verificationMode = object.verificationMode;
+                        break;
+                    }
+                    break;
+                case "INVITE_VERIFICATION_MODE_LOOKUP_ONCE":
+                case 0:
+                    message.verificationMode = 0;
+                    break;
+                case "INVITE_VERIFICATION_MODE_WAIT_NEW_POST":
+                case 1:
+                    message.verificationMode = 1;
+                    break;
+                }
+                if (object.cancelTaskId != null)
+                    message.cancelTaskId = String(object.cancelTaskId);
                 return message;
             };
 
@@ -9635,6 +9697,8 @@ export const popclaw = $root.popclaw = (() => {
                     object.replace = false;
                     object.proofUrl = "";
                     object.mirrorOptin = false;
+                    object.verificationMode = options.enums === String ? "INVITE_VERIFICATION_MODE_LOOKUP_ONCE" : 0;
+                    object.cancelTaskId = "";
                 }
                 if (message.platform != null && Object.hasOwnProperty.call(message, "platform"))
                     object.platform = message.platform;
@@ -9650,6 +9714,10 @@ export const popclaw = $root.popclaw = (() => {
                     object.proofUrl = message.proofUrl;
                 if (message.mirrorOptin != null && Object.hasOwnProperty.call(message, "mirrorOptin"))
                     object.mirrorOptin = message.mirrorOptin;
+                if (message.verificationMode != null && Object.hasOwnProperty.call(message, "verificationMode"))
+                    object.verificationMode = options.enums === String ? $root.popclaw.invite.InviteVerificationMode[message.verificationMode] === undefined ? message.verificationMode : $root.popclaw.invite.InviteVerificationMode[message.verificationMode] : message.verificationMode;
+                if (message.cancelTaskId != null && Object.hasOwnProperty.call(message, "cancelTaskId"))
+                    object.cancelTaskId = message.cancelTaskId;
                 return object;
             };
 
@@ -10086,6 +10154,24 @@ export const popclaw = $root.popclaw = (() => {
             return values;
         })();
 
+        /**
+         * InviteVerificationProgress enum.
+         * @name popclaw.quest.InviteVerificationProgress
+         * @enum {number}
+         * @property {number} INVITE_VERIFICATION_PROGRESS_UNSPECIFIED=0 INVITE_VERIFICATION_PROGRESS_UNSPECIFIED value
+         * @property {number} INVITE_VERIFICATION_PROGRESS_PREPARING=1 INVITE_VERIFICATION_PROGRESS_PREPARING value
+         * @property {number} INVITE_VERIFICATION_PROGRESS_READY=2 INVITE_VERIFICATION_PROGRESS_READY value
+         * @property {number} INVITE_VERIFICATION_PROGRESS_RECOVERING=3 INVITE_VERIFICATION_PROGRESS_RECOVERING value
+         */
+        quest.InviteVerificationProgress = (function() {
+            const valuesById = {}, values = Object.create(valuesById);
+            values[valuesById[0] = "INVITE_VERIFICATION_PROGRESS_UNSPECIFIED"] = 0;
+            values[valuesById[1] = "INVITE_VERIFICATION_PROGRESS_PREPARING"] = 1;
+            values[valuesById[2] = "INVITE_VERIFICATION_PROGRESS_READY"] = 2;
+            values[valuesById[3] = "INVITE_VERIFICATION_PROGRESS_RECOVERING"] = 3;
+            return values;
+        })();
+
         quest.VerifyInvitePayload = (function() {
 
             /**
@@ -10097,6 +10183,7 @@ export const popclaw = $root.popclaw = (() => {
              * @property {Uint8Array|null} [applicantPopclawId] VerifyInvitePayload applicantPopclawId
              * @property {string|null} [expectedSigil] VerifyInvitePayload expectedSigil
              * @property {string|null} [proofUrl] VerifyInvitePayload proofUrl
+             * @property {popclaw.invite.InviteVerificationMode|null} [verificationMode] VerifyInvitePayload verificationMode
              */
 
             /**
@@ -10155,6 +10242,14 @@ export const popclaw = $root.popclaw = (() => {
             VerifyInvitePayload.prototype.proofUrl = "";
 
             /**
+             * VerifyInvitePayload verificationMode.
+             * @member {popclaw.invite.InviteVerificationMode} verificationMode
+             * @memberof popclaw.quest.VerifyInvitePayload
+             * @instance
+             */
+            VerifyInvitePayload.prototype.verificationMode = 0;
+
+            /**
              * Creates a new VerifyInvitePayload instance using the specified properties.
              * @function create
              * @memberof popclaw.quest.VerifyInvitePayload
@@ -10192,6 +10287,8 @@ export const popclaw = $root.popclaw = (() => {
                     writer.uint32(/* id 4, wireType 2 =*/34).string(message.expectedSigil);
                 if (message.proofUrl != null && Object.hasOwnProperty.call(message, "proofUrl"))
                     writer.uint32(/* id 5, wireType 2 =*/42).string(message.proofUrl);
+                if (message.verificationMode != null && Object.hasOwnProperty.call(message, "verificationMode"))
+                    writer.uint32(/* id 6, wireType 0 =*/48).int32(message.verificationMode);
                 return writer;
             };
 
@@ -10249,6 +10346,10 @@ export const popclaw = $root.popclaw = (() => {
                             message.proofUrl = reader.string();
                             break;
                         }
+                    case 6: {
+                            message.verificationMode = reader.int32();
+                            break;
+                        }
                     default:
                         reader.skipType(tag & 7, long);
                         break;
@@ -10293,6 +10394,22 @@ export const popclaw = $root.popclaw = (() => {
                     message.expectedSigil = String(object.expectedSigil);
                 if (object.proofUrl != null)
                     message.proofUrl = String(object.proofUrl);
+                switch (object.verificationMode) {
+                default:
+                    if (typeof object.verificationMode === "number") {
+                        message.verificationMode = object.verificationMode;
+                        break;
+                    }
+                    break;
+                case "INVITE_VERIFICATION_MODE_LOOKUP_ONCE":
+                case 0:
+                    message.verificationMode = 0;
+                    break;
+                case "INVITE_VERIFICATION_MODE_WAIT_NEW_POST":
+                case 1:
+                    message.verificationMode = 1;
+                    break;
+                }
                 return message;
             };
 
@@ -10325,6 +10442,7 @@ export const popclaw = $root.popclaw = (() => {
                     }
                     object.expectedSigil = "";
                     object.proofUrl = "";
+                    object.verificationMode = options.enums === String ? "INVITE_VERIFICATION_MODE_LOOKUP_ONCE" : 0;
                 }
                 if (message.platform != null && Object.hasOwnProperty.call(message, "platform"))
                     object.platform = message.platform;
@@ -10336,6 +10454,8 @@ export const popclaw = $root.popclaw = (() => {
                     object.expectedSigil = message.expectedSigil;
                 if (message.proofUrl != null && Object.hasOwnProperty.call(message, "proofUrl"))
                     object.proofUrl = message.proofUrl;
+                if (message.verificationMode != null && Object.hasOwnProperty.call(message, "verificationMode"))
+                    object.verificationMode = options.enums === String ? $root.popclaw.invite.InviteVerificationMode[message.verificationMode] === undefined ? message.verificationMode : $root.popclaw.invite.InviteVerificationMode[message.verificationMode] : message.verificationMode;
                 return object;
             };
 
@@ -10983,6 +11103,8 @@ export const popclaw = $root.popclaw = (() => {
              * @property {number|Long|null} [followerCount] QuestResult followerCount
              * @property {string|null} [avatarUrl] QuestResult avatarUrl
              * @property {string|null} [bio] QuestResult bio
+             * @property {popclaw.quest.InviteVerificationProgress|null} [verificationProgress] QuestResult verificationProgress
+             * @property {number|Long|null} [progressRevision] QuestResult progressRevision
              */
 
             /**
@@ -11073,6 +11195,22 @@ export const popclaw = $root.popclaw = (() => {
             QuestResult.prototype.bio = "";
 
             /**
+             * QuestResult verificationProgress.
+             * @member {popclaw.quest.InviteVerificationProgress} verificationProgress
+             * @memberof popclaw.quest.QuestResult
+             * @instance
+             */
+            QuestResult.prototype.verificationProgress = 0;
+
+            /**
+             * QuestResult progressRevision.
+             * @member {number|Long} progressRevision
+             * @memberof popclaw.quest.QuestResult
+             * @instance
+             */
+            QuestResult.prototype.progressRevision = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+            /**
              * Creates a new QuestResult instance using the specified properties.
              * @function create
              * @memberof popclaw.quest.QuestResult
@@ -11118,6 +11256,10 @@ export const popclaw = $root.popclaw = (() => {
                     writer.uint32(/* id 8, wireType 2 =*/66).string(message.avatarUrl);
                 if (message.bio != null && Object.hasOwnProperty.call(message, "bio"))
                     writer.uint32(/* id 9, wireType 2 =*/74).string(message.bio);
+                if (message.verificationProgress != null && Object.hasOwnProperty.call(message, "verificationProgress"))
+                    writer.uint32(/* id 10, wireType 0 =*/80).int32(message.verificationProgress);
+                if (message.progressRevision != null && Object.hasOwnProperty.call(message, "progressRevision"))
+                    writer.uint32(/* id 11, wireType 0 =*/88).uint64(message.progressRevision);
                 return writer;
             };
 
@@ -11189,6 +11331,14 @@ export const popclaw = $root.popclaw = (() => {
                         }
                     case 9: {
                             message.bio = reader.string();
+                            break;
+                        }
+                    case 10: {
+                            message.verificationProgress = reader.int32();
+                            break;
+                        }
+                    case 11: {
+                            message.progressRevision = reader.uint64();
                             break;
                         }
                     default:
@@ -11275,6 +11425,39 @@ export const popclaw = $root.popclaw = (() => {
                     message.avatarUrl = String(object.avatarUrl);
                 if (object.bio != null)
                     message.bio = String(object.bio);
+                switch (object.verificationProgress) {
+                default:
+                    if (typeof object.verificationProgress === "number") {
+                        message.verificationProgress = object.verificationProgress;
+                        break;
+                    }
+                    break;
+                case "INVITE_VERIFICATION_PROGRESS_UNSPECIFIED":
+                case 0:
+                    message.verificationProgress = 0;
+                    break;
+                case "INVITE_VERIFICATION_PROGRESS_PREPARING":
+                case 1:
+                    message.verificationProgress = 1;
+                    break;
+                case "INVITE_VERIFICATION_PROGRESS_READY":
+                case 2:
+                    message.verificationProgress = 2;
+                    break;
+                case "INVITE_VERIFICATION_PROGRESS_RECOVERING":
+                case 3:
+                    message.verificationProgress = 3;
+                    break;
+                }
+                if (object.progressRevision != null)
+                    if ($util.Long)
+                        message.progressRevision = $util.Long.fromValue(object.progressRevision, true);
+                    else if (typeof object.progressRevision === "string")
+                        message.progressRevision = parseInt(object.progressRevision, 10);
+                    else if (typeof object.progressRevision === "number")
+                        message.progressRevision = object.progressRevision;
+                    else if (typeof object.progressRevision === "object")
+                        message.progressRevision = new $util.LongBits(object.progressRevision.low >>> 0, object.progressRevision.high >>> 0).toNumber(true);
                 return message;
             };
 
@@ -11321,6 +11504,12 @@ export const popclaw = $root.popclaw = (() => {
                         object.followerCount = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                     object.avatarUrl = "";
                     object.bio = "";
+                    object.verificationProgress = options.enums === String ? "INVITE_VERIFICATION_PROGRESS_UNSPECIFIED" : 0;
+                    if ($util.Long) {
+                        let long = new $util.Long(0, 0, true);
+                        object.progressRevision = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                    } else
+                        object.progressRevision = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                 }
                 if (message.taskId != null && Object.hasOwnProperty.call(message, "taskId"))
                     object.taskId = message.taskId;
@@ -11345,6 +11534,15 @@ export const popclaw = $root.popclaw = (() => {
                     object.avatarUrl = message.avatarUrl;
                 if (message.bio != null && Object.hasOwnProperty.call(message, "bio"))
                     object.bio = message.bio;
+                if (message.verificationProgress != null && Object.hasOwnProperty.call(message, "verificationProgress"))
+                    object.verificationProgress = options.enums === String ? $root.popclaw.quest.InviteVerificationProgress[message.verificationProgress] === undefined ? message.verificationProgress : $root.popclaw.quest.InviteVerificationProgress[message.verificationProgress] : message.verificationProgress;
+                if (message.progressRevision != null && Object.hasOwnProperty.call(message, "progressRevision"))
+                    if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                        object.progressRevision = typeof message.progressRevision === "number" ? BigInt(message.progressRevision) : $util.Long.fromBits(message.progressRevision.low >>> 0, message.progressRevision.high >>> 0, true).toBigInt();
+                    else if (typeof message.progressRevision === "number")
+                        object.progressRevision = options.longs === String ? String(message.progressRevision) : message.progressRevision;
+                    else
+                        object.progressRevision = options.longs === String ? $util.Long.prototype.toString.call(message.progressRevision) : options.longs === Number ? new $util.LongBits(message.progressRevision.low >>> 0, message.progressRevision.high >>> 0).toNumber(true) : message.progressRevision;
                 return object;
             };
 

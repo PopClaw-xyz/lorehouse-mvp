@@ -32,8 +32,11 @@ def test_signed_profile_resolves_by_sigil_and_name_without_private_fields(house)
 
 def test_ambiguity_is_preserved_and_name_never_creates_verified_accounts(house):
     a, b = Actor(), Actor()
-    seed(house, a, clean_card('Scout'))
-    seed(house, b, clean_card('scout'))
+    for actor, name in ((a, 'Scout'), (b, 'scout')):
+        def card(e):
+            e.profile.nickname = name
+            e.profile.declared_at = 1790705946
+        publish(house, actor, card)
     r = house.client.get('/v1/resolve', params={'name': 'scout'})
     assert {c['popclaw_id'] for c in r.json()['candidates']} == {a.popclaw_id, b.popclaw_id}
     assert all(c['profiles'] == [] for c in r.json()['candidates'])

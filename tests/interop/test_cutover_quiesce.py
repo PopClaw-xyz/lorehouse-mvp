@@ -112,7 +112,7 @@ def test_wedged_cleanup_raises_quiesce_timeout_then_recovers(tmp_path):
         epoch_now = int(store.get_meta("stream_epoch") or "0")
         assert epoch_now >= 1
         assert store.get_meta("public_log_incarnation") != state.log_incarnation
-        assert not hub.identity_valid((epoch_now - 1, state.log_incarnation))
+        assert not hub.identity_valid((epoch_now - 1, state.log_incarnation, wire.ENVELOPE_BASELINE))
 
         # Recoverable post-cutover state: release the wedge, task exits,
         # re-running rotate now completes and proves exit.

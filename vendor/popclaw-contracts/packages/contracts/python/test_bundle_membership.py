@@ -30,7 +30,7 @@ from bundle_files import member  # noqa: E402
 class MembershipRule(unittest.TestCase):
     def test_ds_store_is_not_a_member_at_any_depth(self):
         for path in ['.DS_Store', 'packages/.DS_Store',
-                     'packages/contracts/protocol/public-envelope-01/.DS_Store']:
+                     'packages/contracts/protocol/public-envelope-02/.DS_Store']:
             with self.subTest(path=path):
                 self.assertFalse(member(PurePosixPath(path)))
 

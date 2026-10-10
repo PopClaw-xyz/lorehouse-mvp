@@ -10,18 +10,18 @@ READ-AUTH's four purposes and independent session-token inbox authority.
 The upgrade tables below record earlier implementation dispositions; they do
 not supersede that current capability and verification record.
 
-## Status: adapter BOUND to public-envelope-01.7
+## Status: adapter BOUND to public-envelope-02.0
 
 The signed wire surface is implemented against the controlled copy of the
 contract source bundle vendored under `vendor/popclaw-contracts/`:
 
 | Artifact | Identity |
 | --- | --- |
-| Contract bundle | `0.1.0-public-envelope-01.7` (envelope baseline `public-envelope-01`) |
-| Trusted bundle SHA-256 | `f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec` |
-| Accepted fixed commit | `37db76d8573e9931c24671a05a89ec606cbfab06` |
-| Protocol subtree | `8f1745ed5be08a16248b88c7705dfdff4d5b70ea` |
-| Acceptance scope | Local integration after independent normative/security review, 2026-10-04; not a public release or client/runtime acceptance |
+| Contract bundle | `0.1.0-public-envelope-02.0` (envelope baseline `public-envelope-02`) |
+| Trusted bundle SHA-256 | `c530e69b51dcf8358b0e239b67d936dc9443ba7cad1f59b34b34520ad5e11337` |
+| Fixed client source for the bundle | `6c3235a6d82932126725969a5d6784c19208aa96` |
+| Protocol subtree | `cbd331975598ad2340f4011904cf9c49e48119ed` |
+| Acceptance scope | Controlled `.02.0` input; fixed `597df3b`/`6c3235a` local pairing passed and independent review approved. See the bounded evidence below; not a public release |
 
 `tools/vendor_verify_contracts.py` re-verifies all 273 files and the bundle
 digest against that pin (never re-pinned to downloaded content). The
@@ -38,13 +38,52 @@ commit `654a63a3f995d3f1b390541fb1de5233680dc7cd`, receipt commit
 `4d0dc64a13bd011e3f2298b1df7db6fbd0e51b96`). A superseded `.01.6` candidate
 digest `f06e8a24` was never adopted here. The external client
 interoperability run recorded in [interop-verification.md](interop-verification.md)
-was made against the `.01.3` pin and is not re-claimed for `.01.7`.
+was made against the `.01.3` pin and is not re-claimed for `.02.0`.
+
+## Current local acceptance (2026-10-11)
+
+Fixed reference source `597df3b64321b7fed88855b157bfd1453eca81cd`
+(tree `c2a430acc2345b7b2b892c21eb1f9603e79616d0`) was paired with fixed
+client `6c3235a6d82932126725969a5d6784c19208aa96`
+(tree `c76dfb7ad3e8373a71a92554a85f30e7d6511db6`). These are the tested
+source identities, not claims that these commits exist in the public export's
+history. Any exported revision needs its own source mapping.
+
+All three local pairings passed with synthetic identities, fresh temporary
+data roots and loopback-only traffic:
+
+- **Public stream:** the native client receiver verified the manifest and
+  guide, selected `public-envelope-02`, received replay and live checkpoints,
+  checked exact bytes/CIDs, and reconnected from the durable cursor.
+  Duplicate input allocated no additional public sequence.
+- **Profile:** login, first namecard and rename passed; protected fields
+  were preserved.
+- **Relations:** login/name, follow/unfollow and person resolution passed.
+  Original signatures/CIDs were checked; four personal rows and zero
+  relation public rows were observed. The DM was drafted only, not sent.
+
+At `597df3b`, 96 affected tests and 10 live/cutover tests passed. The 509-test
+full-suite result belongs to `c97b626` before two review fixes; it is reused
+unaffected evidence, not a full-suite rerun at `597df3b`. Independent review
+of `597df3b` approved the fixes. The 273-file vendor seal and 27 bridge parity
+tests passed.
+
+The pairing harnesses are `tests/interop/public02_client_loop.py`,
+`tests/interop/profile_http_loop.py` and `tests/interop/relations_mcp_loop.py`.
+Use the corresponding fixed source checkouts and each script's `--help` for
+client, reference and Node arguments; no private checkout path is required.
+
+This evidence does not establish real-identity use, host installation,
+deployment, publication, world-game business, world-action execution, feed UI,
+DM sending or migration of existing data. Wheel construction passed, but an
+isolated wheel import failed because the root vendored protocol is absent.
+The supported installation path remains the documented source checkout.
 
 ## HTTP Profile binding for the public 0.1.0 client
 
 `GET /v1/profile/{popclaw_id}` implements the minimal read binding consumed
 by the public 0.1.0 client's namecard write guard. This is a version-specific
-client HTTP adapter, **not** an amendment to the sealed `.01.7` signed-wire
+client HTTP adapter, **not** an amendment to the sealed `.02.0` signed-wire
 contract or a promise that every Rust house endpoint is a permanent federation
 standard. The vendor bundle, Profile signing bytes, CID, timestamp storage
 unit and ingress semantics are unchanged.
@@ -171,7 +210,9 @@ release, install a package, or publish an artifact.
 ## Upgrade record: `.01.5` → `.01.6`
 
 Historical dispositions at that upgrade only; the implemented surface below
-and current-client binding describe the current relation engine.
+and current-client binding describe the current relation engine. The old
+skip/filter behavior in this table does not apply to `.02.0`: an unsupported
+member invalidates the public log, with no checkpoint across that row.
 
 Two substantive changes, both of which this server had already anticipated.
 
@@ -375,13 +416,11 @@ required stop/backup steps and actual printed capability revision.
   ceilings. Ingress admits valid PUBLIC-typed ordered relations, allows legacy
   mode only before ordered evidence, and refuses malformed orders/PRIVATE.
   Manifest declarations are checked against the runtime capabilities.
-  Exits: a relation original seeded into the durable log between two
-  ordinary public events is withheld on replay, on the live lane and on the
-  legacy lane, while both ordinary events still read and the checkpoint
-  still certifies coverage through the skipped position — a filtered row
-  never stalls a cursor. A relation row whose index association is corrupt
-  still raises `publication_index_inconsistent` rather than being quietly
-  skipped, so filtering cannot launder real corruption. Ceilings: an
+  Exits: a relation original seeded into the actual public log is invalid
+  under `.02.0`. Replay and live reception report `public_log_invalid`;
+  the legacy lane closes. No later event or checkpoint crosses that row.
+  A corrupt index association is also rejected rather than silently skipped.
+  Ceilings: an
   envelope of exactly `L_ENVELOPE_MAX_BYTES` is admitted and one byte more
   is refused, the wrapper ceiling is proven distinct from the envelope
   ceiling, and a maximal event is read back byte-identically through the
@@ -406,7 +445,8 @@ required stop/backup steps and actual printed capability revision.
   (the two placeholder assertions that encoded the old adapter-pending
   state were replaced with real-protocol expectations).
 
-**External client interoperability: PASSED (two real runtime phases).**
+**Historical external client interoperability: PASSED (two real runtime phases).**
+This record does not establish pairing of the current `.02.0` candidate.
 The G0 TypeScript client candidate
 `11fbca5861542280c86078a8a93753a641866701` passed both phases against this
 server at `f17c8940f66636f901f0f475fec6acdcf1a03d2c` — real login,
@@ -492,33 +532,24 @@ and a shared recipient-isolated personal log for DMs and relations.
 - **Ingress retains every admitted original privately.** Evidence and both
   participants' obligations commit with the projection. Invalid order
   structure and PRIVATE-typed bodies are visibly refused, never downgraded.
-- **All three public exits withhold one.** A row an earlier build numbered
-  into the durable public log is never delivered on replay, on the live lane
-  or on the legacy lane. Its original bytes and CID are left untouched and
-  the log keeps its consecutive numbering, so nothing is rewritten and the
-  index-completeness check stays meaningful.
-- **Withholding still advances the scan position.** A skipped row never
-  stalls a cursor and never costs a later legitimate event its delivery, and
-  the checkpoint still certifies coverage through the skipped position.
-- **Withholding never launders corruption.** Row validation — raw-wire guard
-  and index association — runs first and unchanged, so genuinely bad bytes
-  or a broken association still produce the proper gap or close instead of
-  disappearing into a clean-looking stream.
+- **All three public exits reject an invalid public row.** Under `.02.0`,
+  the shared public predicate rejects a relation original with `NOT_PUBLIC`.
+  Replay and live reception report a gap; the legacy lane closes. Neither
+  later bytes nor a checkpoint may cross the invalid row.
+- **Startup validates the retained public log.** A relation original in that
+  log fails startup validation. It is not filtered away or migrated, and
+  its position is not certified as covered.
+- **Validation precedes delivery.** Original-wire, CID, signature, index
+  association and public-eligibility checks apply before emission. Invalid
+  bytes and inconsistent indexes cannot disappear into a clean-looking stream.
 - **Relation replay uses its own evidence index.** A mismatched index is
   refused rather than returning a historical public receipt for a personal
-  original. There is no import or migration of a pre-release installation.
-- **Withholding does not depend on the sealed whitelist.** Relation-ness is
-  decided from the structural decode, which keeps the field whatever the
-  baseline's public predicate lists. The `.01.6` re-seal did drop tags 20/21
-  from that predicate, and a server that asked it whether a stored relation
-  original is publicly eligible would now read the answer as an invalid
-  public row and close every reader's connection — a permanently stalled
-  cursor on any data root still holding one. Restoring that coupling against
-  the current pin breaks all three exits and the corruption test, which is
-  what makes this decoupling load-bearing rather than defensive.
+  original. Valid relation admission and delivery to participants remain
+  separate from public-log eligibility. There is no import or migration of
+  a pre-release installation.
 
 The former public-lane conflict was resolved by `.01.6`; `.01.7` seals the
-current read-credential binding. Every vendored member remains byte-identical
+read-credential binding retained in `.02.0`. Every vendored member remains byte-identical
 to the accepted upstream object.
 
 ## Known limits of this build
@@ -535,6 +566,7 @@ to the accepted upstream object.
   with `Last-Event-ID` resume; older query parameters of the historical
   relay are not emulated beyond that.
 - Single process per data root by design; no multi-instance service, no
-  deployment tooling, no push. External client interoperability is
-  verified (see Evidence); hosted availability and other platforms remain
+  deployment tooling, no push. Historical external client interoperability is
+  recorded above; current `.02.0` local pairing has the separate bounded scope
+  stated above. Hosted availability and other platforms remain
   outside the record.

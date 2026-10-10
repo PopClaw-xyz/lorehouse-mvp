@@ -1,9 +1,9 @@
 {
-  "protocol_version": "0.1.0-public-envelope-01.7",
+  "protocol_version": "0.1.0-public-envelope-02.0",
   "description": "Provenance identifiers only, not floating build dependencies or a claim that upstream private revisions are public distribution endpoints.",
   "licensing_basis": "PopClaw source Apache-2.0 declaration; third-party dependencies retain their own licenses/notices.",
   "historical_source_resolution": "The upstream_source_commit recorded below did not resolve in any object store examined while preparing 0.1.0-public-envelope-01.6, so the historical source was NOT re-verified this round. The identifier and the source hashes are kept exactly as first recorded. An unresolvable identifier is not evidence that the object never existed, and the current public commit is deliberately not substituted for it: a provenance label that names the wrong origin is worse than one that admits it could not be checked.",
-  "derived_revision": "0.1.0-public-envelope-01.7 derives from the exact protocol subtree at first-release client source efd085a4eb185866e057008a51362b0c0c2ae6c0, matching historical seal f42bf5dbe36d5979dcb0433cb23cff620b75eb5c: version 0.1.0-public-envelope-01.6, 271 members, bundle digest d01bd7a060cdaa2bb35937b67e5fb4dc64a350a646b30cf2fe5dd919701ea54b. CHANGES.md records the identity read contract correction. This seal cannot contain its producing commit identifier; the fixed producing commit is recorded in an external receipt.",
+  "derived_revision": "0.1.0-public-envelope-02.0 derives from the exact 273-file 0.1.0-public-envelope-01.7 bundle with digest f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec. The new baseline identifier and five additive invite-wait fields are recorded in public-envelope-02/CHANGES.md. The prior public-source ancestry and its hashes remain unchanged. The sealed bundle digest identifies the public source used for this candidate.",
   "source_files": [
     {
       "path": "packages/contracts/proto/event.proto",
@@ -414,43 +414,43 @@
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/PUBLIC-STREAM.md",
+      "path": "packages/contracts/protocol/public-envelope-02/PUBLIC-STREAM.md",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "5720ff1f8a72d33ed00522c2e42845325bb938911d9f65e9c79efff2736f9fa1",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/RECEIPTS.md",
+      "path": "packages/contracts/protocol/public-envelope-02/RECEIPTS.md",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "70bf7e15df3b5e4eec42b09b7eb30101429d9facde239f212e735d4ca9e2078d",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/SPEC.md",
+      "path": "packages/contracts/protocol/public-envelope-02/SPEC.md",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "58162c270d88e8630bd8841ff2b42bef87bbf3aaa824dcd7f101b58d81c3e1e9",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/action-kind.schema.json",
+      "path": "packages/contracts/protocol/public-envelope-02/action-kind.schema.json",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "7876b3a6b5ad4cc0077d424feba312d8e10325f15f9b054d3281b849cd130365",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/board.schema.json",
+      "path": "packages/contracts/protocol/public-envelope-02/board.schema.json",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "0f3ee8cd6d6e8befe92132b313c08adbba6ea013955a40a9718a5e00cb445bb6",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/examples.json",
+      "path": "packages/contracts/protocol/public-envelope-02/examples.json",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "3bf338ee0784b35e73c9375e59507b4e1f7f02c788c4e9f48e316a2ffbf28cc5",
       "derivation": "selected source; see CHANGES.md for public transformations"
     },
     {
-      "path": "packages/contracts/protocol/public-envelope-01/interpreted-event-kind.schema.json",
+      "path": "packages/contracts/protocol/public-envelope-02/interpreted-event-kind.schema.json",
       "upstream_source_commit": "93f452bd0a8c08113a574ad0f15586db09d76a4c",
       "upstream_source_sha256": "518ad4e1c638808783bc4c5e8b572e2f90ea4772e2f8f81c0ab37bc367418549",
       "derivation": "selected source; see CHANGES.md for public transformations"
@@ -488,7 +488,7 @@
   ],
   "new_files": "Baseline guards, Python descriptor bridge and serial referee, adversarial vectors, build/CI/integrity tools and implementer guidance are new candidate work. Their exact bytes are fixed by CONTRACT-MANIFEST.json.",
   "identity_read_contract_derivation": {
-    "contract": "packages/contracts/protocol/public-envelope-01/READ-AUTH.md",
+    "contract": "packages/contracts/protocol/public-envelope-02/READ-AUTH.md",
     "basis": "Existing popclaw-identity-read-v2 contract and first-release implementation, not a new protobuf or credential wire design. Historical private contract revision 6951b81ba1568601c8dbd662fbfbd58246b7dc1b, SHA-256 d92b892c99b4cf1c57341f5d21a9cc082af31aa06e9dbb4f72ac176607b653f9; historical pending/deployment notes are not new requirements. Provenance identifiers are not public distribution links.",
     "fixture": "packages/contracts/fixtures/relation-read-v2-vectors.json",
     "fixture_source_commit": "efd085a4eb185866e057008a51362b0c0c2ae6c0",

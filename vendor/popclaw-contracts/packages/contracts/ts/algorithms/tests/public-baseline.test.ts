@@ -32,6 +32,17 @@ describe('shared cross-language public baseline vectors', () => {
       else expect(() => fn(raw)).toThrow();
     }
   });
+  it.each([
+    'invite_wait_duplicate_mode',
+    'invite_wait_duplicate_cancel_task',
+    'invite_wait_duplicate_dispatch_mode',
+    'invite_wait_duplicate_progress',
+    'invite_wait_duplicate_progress_revision',
+  ])('classifies %s as a duplicate singular field', name => {
+    const v = vectors.wire.find(row => row.name === name);
+    expect(v, `missing vector ${name}`).toBeDefined();
+    expect(() => checkEnvelopeWire(Buffer.from(v!.wire_hex,'hex'))).toThrow('DUPLICATE_FIELD');
+  });
   for (const v of vectors.signed) it(v.name, () => {
     const raw = Buffer.from(v.wire_hex,'hex');
     expect(() => checkEnvelopeWire(raw)).not.toThrow();
@@ -88,7 +99,7 @@ describe('exact baseline declaration is covered by manifest proof', () => {
     const changed=JSON.parse(v.manifest_utf8);
     changed.world_interaction.public_stream.envelope_baseline='another-baseline';
     expect(cidFromCanonical(new TextEncoder().encode(JSON.stringify(changed)))).not.toBe(proof.manifestDigest);
-    changed.world_interaction.public_stream.envelope_baseline='public-envelope-01';
+    changed.world_interaction.public_stream.envelope_baseline='public-envelope-02';
     changed.world_interaction.public_stream.log_incarnation='replacement-log';
     expect(cidFromCanonical(new TextEncoder().encode(JSON.stringify(changed)))).not.toBe(proof.manifestDigest);
     expect(cidFromCanonical(new TextEncoder().encode(v.manifest_utf8+'\n'))).not.toBe(proof.manifestDigest);

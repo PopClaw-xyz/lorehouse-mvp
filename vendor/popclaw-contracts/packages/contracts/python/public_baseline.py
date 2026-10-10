@@ -2,7 +2,7 @@
 from google.protobuf.descriptor import FieldDescriptor as F
 from protocol import message_type
 
-ENVELOPE_BASELINE = 'public-envelope-01'
+ENVELOPE_BASELINE = 'public-envelope-02'
 # L_ENVELOPE_MAX_BYTES (LIMITS.md): the largest raw EventEnvelope a conforming reader must accept.
 L_ENVELOPE_MAX_BYTES = 1572864
 
@@ -110,6 +110,12 @@ def check_public_envelope_structure(raw):
             raise ValueError('NOT_PUBLIC')
         if t.scope == 0 and t.target_ids or t.scope == 2 and not t.target_ids:
             raise ValueError('INVALID_TARGET')
+    if env.HasField('invite_request') and env.invite_request.verification_mode not in (0, 1):
+        raise ValueError('INVALID_ENUM')
+    if env.HasField('quest_dispatch') and env.quest_dispatch.HasField('verify_invite') and env.quest_dispatch.verify_invite.verification_mode not in (0, 1):
+        raise ValueError('INVALID_ENUM')
+    if env.HasField('quest_result') and env.quest_result.verification_progress not in (0, 1, 2, 3):
+        raise ValueError('INVALID_ENUM')
     if env.HasField('house_event'):
         h = env.house_event
         if len(h.kind) > 128 or re.fullmatch(r'[a-z0-9-]+\.[a-z0-9_]+', h.kind, flags=re.ASCII) is None:

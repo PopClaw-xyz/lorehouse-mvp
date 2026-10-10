@@ -165,5 +165,9 @@ def test_documented_http_fixtures_match_actual_projection(house):
     # no signing claims are attached to these response-only examples.
     actor.popclaw_id = '1' * 32
     assert profile(house, actor).json() == fixtures['no_card']
+    # Response-only examples cannot establish a signed original for the
+    # all-zero synthetic key. Compare the card shape, not source admission.
+    from ranger_map.app import _profile_card
+    assert _profile_card(json.dumps(clean_card())) == fixtures['clean_card']['card']
     seed(house, actor, clean_card())
-    assert profile(house, actor).json() == fixtures['clean_card']
+    assert profile(house, actor).status_code == 503

@@ -56,7 +56,7 @@ pub struct IntentContext {
 /// Signs the domain-separated pair {HouseBinding, manifest digest} with the
 /// pinned house authority key. The proof is response metadata; the digest
 /// is NOT recursively hashed inside the manifest itself.
-/// Trust bootstrap (protocol/public-envelope-01/TRUST.md): a
+/// Trust bootstrap (protocol/public-envelope-02/TRUST.md): a
 /// bound manifest proof is verified against the EXISTING pin, the exact
 /// response body digest and the HouseBinding. A first-contact TOFU pin may be
 /// established by a validated HTTPS fetch, after which the same response's
@@ -942,7 +942,7 @@ pub struct ExecutionClosure {
 }
 /// Restricted exit-control query (plugin locally disabled), served by the
 /// non-public control endpoint POST /v1/world-actions/closure-status
-/// (protocol/public-envelope-01/SPEC.md; same-origin fixed path, listed in the manifest
+/// (protocol/public-envelope-02/SPEC.md; same-origin fixed path, listed in the manifest
 /// board). Reads only this actor+installation's covered closure and pages of
 /// already-known terminal result references. Cannot invoke, renew, fetch
 /// arbitrary snapshots, or reopen ordinary streams. Fresh request_id+nonce
@@ -1043,7 +1043,7 @@ pub struct ClosureObservation {
     #[prost(message, optional, tag = "13")]
     pub closure: ::core::option::Option<ExecutionClosure>,
     /// SHA-256 hex of the canonical ExecutionClosure bytes (core WITHOUT the
-    /// closure_digest field itself — see protocol/public-envelope-01/SIGNING.md); the
+    /// closure_digest field itself — see protocol/public-envelope-02/SIGNING.md); the
     /// immutability anchor clients compare across observations.
     #[prost(string, tag = "14")]
     pub closure_digest: ::prost::alloc::string::String,

@@ -161,6 +161,14 @@ def main():
                 created_at='2026-10-01T00:00:00Z', public_key=actor.popclaw_id,
                 seed=actor.private_key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex())))
             key_path.chmod(0o600)
+            # Current first-release clients require a complete fresh storage
+            # profile. This helper preserves the synthetic fixture identity;
+            # it initializes only this new temporary root, never old data.
+            subprocess.run([args.node, '--import', str(pkg / 'node_modules/tsx/dist/loader.mjs'),
+                str(ROOT / 'tests/interop/initialize_client_fixture.mjs'), str(client), str(data)],
+                cwd=pkg, check=True, capture_output=True, text=True,
+                env=dict(PATH=os.environ.get('PATH', ''), HOME=str(temp / 'home'), TMPDIR=str(temp),
+                         LANG='en_US.UTF-8', POPCLAW_DATA_ROOT=str(data)))
             (data / 'config/plugin.json').write_text(json.dumps(dict(lore_houses=[origin])))
             (data / 'config/cadence/cadence.json').write_text(json.dumps(
                 dict(schemaVersion=1, delivery=dict(primaryLanguage='en'))))

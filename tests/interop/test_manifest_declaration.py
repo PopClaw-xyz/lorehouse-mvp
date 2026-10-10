@@ -33,7 +33,7 @@ from tests.interop.wire_helpers import (
 
 VENDOR = Path(__file__).resolve().parents[2] / "vendor" / "popclaw-contracts"
 ACTION_KIND_SCHEMA = json.loads(
-    (VENDOR / "packages" / "contracts" / "protocol" / "public-envelope-01"
+    (VENDOR / "packages" / "contracts" / "protocol" / "public-envelope-02"
      / "action-kind.schema.json").read_text()
 )
 

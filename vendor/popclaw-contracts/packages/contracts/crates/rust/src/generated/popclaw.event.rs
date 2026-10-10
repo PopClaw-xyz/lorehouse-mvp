@@ -62,7 +62,7 @@ pub mod recipient {
 /// Signed world-event container. Session control and relay frames are separate.
 /// event_id computation (canonical CID; see the public envelope baseline):
 /// 1. Copy EventEnvelope with event_id="" and signature=empty bytes.
-/// 2. Encode using the public-envelope-01 canonicalization rules.
+/// 2. Encode using the public-envelope-02 canonicalization rules.
 /// 3. SHA-256 of serialized bytes.
 /// 4. Hex-encode (64 chars).
 #[derive(Clone, PartialEq, ::prost::Message)]

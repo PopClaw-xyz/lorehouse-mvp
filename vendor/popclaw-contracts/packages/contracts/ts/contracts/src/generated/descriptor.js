@@ -910,6 +910,12 @@ export default {
         },
         "invite": {
           "nested": {
+            "InviteVerificationMode": {
+              "values": {
+                "INVITE_VERIFICATION_MODE_LOOKUP_ONCE": 0,
+                "INVITE_VERIFICATION_MODE_WAIT_NEW_POST": 1
+              }
+            },
             "InviteRequest": {
               "fields": {
                 "platform": {
@@ -939,6 +945,14 @@ export default {
                 "mirrorOptin": {
                   "type": "bool",
                   "id": 7
+                },
+                "verificationMode": {
+                  "type": "InviteVerificationMode",
+                  "id": 8
+                },
+                "cancelTaskId": {
+                  "type": "string",
+                  "id": 9
                 }
               }
             },
@@ -997,6 +1011,14 @@ export default {
                 "QUEST_OUTCOME_ABSTAIN": 3
               }
             },
+            "InviteVerificationProgress": {
+              "values": {
+                "INVITE_VERIFICATION_PROGRESS_UNSPECIFIED": 0,
+                "INVITE_VERIFICATION_PROGRESS_PREPARING": 1,
+                "INVITE_VERIFICATION_PROGRESS_READY": 2,
+                "INVITE_VERIFICATION_PROGRESS_RECOVERING": 3
+              }
+            },
             "VerifyInvitePayload": {
               "fields": {
                 "platform": {
@@ -1018,6 +1040,10 @@ export default {
                 "proofUrl": {
                   "type": "string",
                   "id": 5
+                },
+                "verificationMode": {
+                  "type": "popclaw.invite.InviteVerificationMode",
+                  "id": 6
                 }
               }
             },
@@ -1110,6 +1136,14 @@ export default {
                 "bio": {
                   "type": "string",
                   "id": 9
+                },
+                "verificationProgress": {
+                  "type": "InviteVerificationProgress",
+                  "id": 10
+                },
+                "progressRevision": {
+                  "type": "uint64",
+                  "id": 11
                 }
               }
             }

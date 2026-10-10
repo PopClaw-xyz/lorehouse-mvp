@@ -30,6 +30,15 @@ pub struct InviteRequest {
     /// Synchronization is forward-only and never backfills historical posts. Omit false.
     #[prost(bool, tag = "7")]
     pub mirror_optin: bool,
+    /// WAIT_NEW_POST arms a ranger before the applicant publishes an X proof post.
+    /// Mutually exclusive with proof_url. Zero elides for legacy CID compatibility.
+    #[prost(enumeration = "InviteVerificationMode", tag = "8")]
+    pub verification_mode: i32,
+    /// Owner-signed cancellation of an existing wait task without creating a task or
+    /// changing a verified profile. Requires WAIT_NEW_POST and the exact original
+    /// platform/handle. The receipt carries this task id; outcome is CANCELLED.
+    #[prost(string, tag = "9")]
+    pub cancel_task_id: ::prost::alloc::string::String,
 }
 /// LoreHouse-signed milestone event when an invite reaches APPROVED quorum.
 /// Published as EventEnvelope { body: invite_verified }, actor = lore-house.
@@ -59,4 +68,31 @@ pub struct InviteVerified {
     /// same; captured by ranger at verify time
     #[prost(string, tag = "8")]
     pub account_id: ::prost::alloc::string::String,
+}
+/// Selects the invite proof path. Zero preserves the legacy single-lookup path.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum InviteVerificationMode {
+    LookupOnce = 0,
+    WaitNewPost = 1,
+}
+impl InviteVerificationMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::LookupOnce => "INVITE_VERIFICATION_MODE_LOOKUP_ONCE",
+            Self::WaitNewPost => "INVITE_VERIFICATION_MODE_WAIT_NEW_POST",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "INVITE_VERIFICATION_MODE_LOOKUP_ONCE" => Some(Self::LookupOnce),
+            "INVITE_VERIFICATION_MODE_WAIT_NEW_POST" => Some(Self::WaitNewPost),
+            _ => None,
+        }
+    }
 }

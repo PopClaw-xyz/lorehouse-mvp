@@ -8,7 +8,7 @@ Business reads (unchanged from the reference candidate):
 - ``GET /ranger-map/v1/footprints/by-event/{id}`` immutable original result
 - ``GET /healthz``                                basic health
 
-Native protocol (public-envelope-01.6):
+Native protocol (public-envelope-02.0):
 
 - ``GET  /v1/manifest``                           pinned manifest + signed proof
 - ``GET  /v1/guide.md``                           exact pinned guide bytes
@@ -391,6 +391,17 @@ def _profile_card(card_json: str) -> dict:
     return card
 
 
+def _verified_profile_card(store, popclaw_id: str, row) -> dict:
+    """Both public Profile exits require the exact admitted original."""
+    card = _profile_card(row["card_json"])
+    original = store.query_one("SELECT * FROM accepted_envelopes WHERE event_id=?", (row["event_id"],))
+    if original is None or original["actor_id"] != popclaw_id or streams_mod._validate_public_row(original) != 28:
+        raise StorageUnavailable("the profile original is unavailable")
+    if wire.EventEnvelope.FromString(original["envelope_bytes"]).actor.popclaw_id != popclaw_id:
+        raise StorageUnavailable("the profile original identity does not match")
+    return card
+
+
 def _profile_counts(store, popclaw_id: str) -> tuple[int, int]:
     """House-local, CID-deduplicated Post and received Reply envelope counts.
 
@@ -398,16 +409,20 @@ def _profile_counts(store, popclaw_id: str) -> tuple[int, int]:
     by the sender or inferred from text. No external-post resolution is added.
     The actor index serves posts; replies require a local scan and decode.
     """
-    posts = store.query_one(
-        "SELECT COUNT(*) AS count FROM accepted_envelopes"
+    posts = 0
+    for row in store.query_all(
+        "SELECT * FROM accepted_envelopes"
         " WHERE actor_id = ? AND body_tag = 27 AND public_eligible = 1",
         (popclaw_id,),
-    )["count"]
+    ):
+        streams_mod._validate_public_row(row)
+        posts += 1
     replies = 0
     for row in store.query_all(
-        "SELECT envelope_bytes FROM accepted_envelopes"
+        "SELECT * FROM accepted_envelopes"
         " WHERE body_tag = 25 AND public_eligible = 1"
     ):
+        streams_mod._validate_public_row(row)
         envelope = wire.EventEnvelope.FromString(row["envelope_bytes"])
         if envelope.WhichOneof("body") != "reply":
             raise StorageUnavailable("the stored reply index cannot be represented")
@@ -425,11 +440,11 @@ async def profile_endpoint(request: Request) -> Response:
         raise InvalidInput("popclaw_id must decode to a 32-byte key") from None
     try:
         row = store.query_one(
-            "SELECT card_json FROM profiles WHERE ranger_id = ?", (popclaw_id,)
+            "SELECT card_json, event_id FROM profiles WHERE ranger_id = ?", (popclaw_id,)
         )
-        card = _profile_card(row["card_json"]) if row is not None else None
+        card = _verified_profile_card(store, popclaw_id, row) if row is not None else None
         posts, replies = _profile_counts(store, popclaw_id)
-    except (sqlite3.Error, DecodeError) as exc:
+    except (sqlite3.Error, DecodeError, wire.WireError, streams_mod.IndexInconsistent) as exc:
         raise StorageUnavailable("the local profile database is not readable") from exc
     # Absence is an explicit answer inside a complete HTTP wrapper. Only a
     # genuinely absent row omits card; invalid IDs and unreadable rows fail.
@@ -466,9 +481,9 @@ async def resolve_endpoint(request: Request) -> Response:
     try:
         with request.app.state.store.read_tx():
             rows = request.app.state.store.query_all(
-                "SELECT ranger_id, card_json FROM profiles ORDER BY ranger_id")
+                "SELECT ranger_id, card_json, event_id FROM profiles ORDER BY ranger_id")
             for row in rows:
-                card = _profile_card(row["card_json"])
+                card = _verified_profile_card(request.app.state.store, row["ranger_id"], row)
                 try:
                     wire.key_bytes_from_popclaw_id(row["ranger_id"])
                 except ValueError as exc:
@@ -483,7 +498,7 @@ async def resolve_endpoint(request: Request) -> Response:
                     candidates.append({"popclaw_id": row["ranger_id"],
                                        "nickname": card["nickname"],
                                        "sigil": short, "profiles": []})
-    except sqlite3.Error as exc:
+    except (sqlite3.Error, DecodeError, wire.WireError, streams_mod.IndexInconsistent) as exc:
         raise StorageUnavailable("the local profile directory is not readable") from exc
     candidates.sort(key=lambda c: (c["nickname"].casefold() != name.casefold(),
                                    c["nickname"].casefold(), c["popclaw_id"]))
@@ -523,6 +538,17 @@ async def action_status_endpoint(request: Request) -> Response:
 async def world_stream_endpoint(request: Request) -> Response:
     hub: streams_mod.StreamHub = request.app.state.hub
     if "mode" in request.query_params:
+        try:
+            log = hub.captured_identity()[1]
+            bindings = json.loads(request.app.state.store.get_meta("public_log_baselines") or "{}")
+            declared = request.app.state.house_state.manifest_json["world_interaction"]["public_stream"]
+            ready = (bindings.get(log) == wire.ENVELOPE_BASELINE
+                     and declared["envelope_baseline"] == bindings.get(log)
+                     and declared["log_incarnation"] == log)
+        except (ValueError, KeyError, TypeError):
+            ready = False
+        if not ready:
+            return error_response("PUBLIC_STREAM_UNAVAILABLE", "public stream baseline is unavailable", 409)
         try:
             selection = streams_mod.parse_public_request(
                 request.query_params,

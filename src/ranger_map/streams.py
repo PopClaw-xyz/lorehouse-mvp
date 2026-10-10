@@ -143,14 +143,18 @@ class StreamHub:
         self._tasks: dict = {}  # task -> (loop, thread_ident)
         self._tasks_guard = threading.Lock()
 
-    def captured_identity(self) -> tuple[int, str]:
+    def captured_identity(self) -> tuple[int, str, str]:
         epoch = int(self._store.get_meta("stream_epoch") or "0")
         log = self._store.get_meta("public_log_incarnation") or ""
-        return epoch, log
+        try:
+            baseline = json.loads(self._store.get_meta("public_log_baselines") or "{}").get(log, "")
+        except (TypeError, ValueError):
+            baseline = ""
+        return epoch, log, baseline
 
-    def identity_valid(self, captured: tuple[int, str]) -> bool:
+    def identity_valid(self, captured: tuple[int, str, str]) -> bool:
         with self._cutover_lock:
-            return self.captured_identity() == captured
+            return captured[2] == wire.ENVELOPE_BASELINE and self.captured_identity() == captured
 
     def register_stream(self) -> None:
         """Register the current async task for cancellation on rotation."""
@@ -245,23 +249,8 @@ class StreamHub:
 
 
 def _publicly_deliverable(tag: int) -> bool:
-    """House delivery policy, applied AFTER a row has been validated.
-
-    A relation original is a personal event (RELATIONS.md §8): it is owed
-    to the two participants and to no public lane. This house refuses one
-    at ingress, so no new row can appear; a row numbered into the durable
-    log by an earlier build stays exactly where it is — originals and CIDs
-    are never rewritten and the log keeps its consecutive numbering — and
-    is skipped on every public exit instead.
-
-    Order matters. Validation runs first and unchanged, so genuinely bad
-    bytes or a broken index association still raise and still produce the
-    proper gap or close: filtering must never launder real corruption into
-    a clean-looking stream. A skipped row still advances the scan position,
-    so a filtered row never stalls a cursor and never costs a later
-    legitimate post its delivery.
-    """
-    return tag not in wire.RELATION_TAGS
+    """Only called after the shared public predicate validates the row."""
+    return tag in wire.PUBLIC_ELIGIBLE_TAGS
 
 
 def _validate_public_row(row) -> int:
@@ -271,23 +260,23 @@ def _validate_public_row(row) -> int:
     an index/consistency failure, never silently skipped by a filtered
     query.
 
-    The raw-wire guard runs first and the privacy predicate last, because
-    the two answer different questions. Bad bytes and a broken index
-    association are corruption and must raise whatever the row carries.
-    Public eligibility is a membership verdict, and for a relation original
-    that verdict is permanently "never" — so it is withheld by
-    ``_publicly_deliverable`` rather than routed through a predicate that
-    would report it as an invalid public row. Consulting the predicate for
-    a relation would make a stored relation original close every reader's
-    connection the moment the sealed whitelist stops listing tags 20/21,
-    which is a permanently stalled cursor rather than a withheld row.
+    Unsupported members invalidate the public log, including relation
+    originals. Filtering must not certify coverage across such a record.
     """
     raw = bytes(row["envelope_bytes"])
     tag = wire.guard_envelope(raw)
     envelope = wire.EventEnvelope.FromString(raw)
     cid = wire.envelope_cid(raw)
+    if envelope.event_id != cid:
+        raise wire.WireError("CID_INVALID")
     if cid != row["event_id"]:
         raise IndexInconsistent("event_id does not match the envelope CID")
+    try:
+        author_key = wire.key_bytes_from_popclaw_id(envelope.actor.popclaw_id)
+    except ValueError as exc:
+        raise wire.WireError("ACTOR_SIGNATURE_INVALID") from exc
+    if not wire.verify_ed25519(author_key, bytes(envelope.signature), wire.canonical_envelope(envelope)):
+        raise wire.WireError("ACTOR_SIGNATURE_INVALID")
     expected_kind = (envelope.house_event.kind if tag == 34
                      else wire.BODY_TAGS.get(tag, "unknown"))
     if expected_kind != row["kind"]:
@@ -297,8 +286,7 @@ def _validate_public_row(row) -> int:
     if signed_scopes != json.loads(row["scopes"]):
         raise IndexInconsistent("scope association does not match the"
                                 " signed envelope")
-    if _publicly_deliverable(tag):
-        wire.guard_public_structure(raw)
+    wire.guard_public_structure(raw)
     return tag
 
 

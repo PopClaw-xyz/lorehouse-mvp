@@ -1,6 +1,6 @@
 {
-  "protocol_version": "0.1.0-public-envelope-01.7",
-  "envelope_baseline": "public-envelope-01",
+  "protocol_version": "0.1.0-public-envelope-02.0",
+  "envelope_baseline": "public-envelope-02",
   "generation": {
     "protoc": "34.1",
     "prost_build": "0.13.5",

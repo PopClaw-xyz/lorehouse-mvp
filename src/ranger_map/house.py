@@ -158,6 +158,33 @@ _META_RETIRED_LOGS = "retired_log_incarnations"
 _META_HOUSE_REVISION = "house_revision"
 _META_MANIFEST = "manifest_bytes"
 _META_GUIDE = "guide_bytes"
+_META_LOG_BASELINES = "public_log_baselines"
+
+
+def validate_public_log(store, manifest: dict) -> None:
+    """Refuse readiness for an unbound baseline or invalid retained log.
+
+    No old log is upgraded or rewritten. New empty roots pin their binding
+    before signing a manifest; restarts validate the same original records.
+    """
+    from .streams import _validate_public_row, IndexInconsistent
+
+    log = store.get_meta(_META_LOG_INCARNATION)
+    try:
+        bindings = json.loads(store.get_meta(_META_LOG_BASELINES) or "{}")
+        declared = manifest["world_interaction"]["public_stream"]
+        if (bindings.get(log) != wire.ENVELOPE_BASELINE
+                or declared["envelope_baseline"] != bindings.get(log)
+                or declared["log_incarnation"] != log):
+            raise HouseStateError("public log baseline binding is unsupported; use a fresh data directory")
+        expected = 1
+        for row in store.query_all("SELECT * FROM public_log WHERE log_incarnation=? ORDER BY seq", (log,)):
+            if row["seq"] != expected:
+                raise HouseStateError("public log index is inconsistent")
+            _validate_public_row(row)
+            expected += 1
+    except (ValueError, KeyError, TypeError, wire.WireError, IndexInconsistent) as exc:
+        raise HouseStateError("public log is invalid; original data retained") from exc
 
 
 class HouseStateError(Exception):
@@ -330,6 +357,8 @@ def load_or_setup(store, identity: HouseIdentity, origin: str) -> HouseState:
                 store.set_meta(_META_ORIGIN, origin)
                 store.set_meta(_META_SERVER_INCARNATION, new_incarnation("rmserver"))
                 store.set_meta(_META_LOG_INCARNATION, log_incarnation)
+                store.set_meta(_META_LOG_BASELINES, json.dumps(
+                    {log_incarnation: wire.ENVELOPE_BASELINE}, sort_keys=True))
                 store.set_meta(_META_RETIRED_SERVER, json.dumps([]))
                 store.set_meta(_META_RETIRED_LOGS, json.dumps([]))
                 store.set_meta(_META_HOUSE_REVISION, "0")
@@ -354,6 +383,7 @@ def load_or_setup(store, identity: HouseIdentity, origin: str) -> HouseState:
     # structurally valid intent_kinds row is an unbacked capability — refuse
     # to serve it rather than weakening the board the client validates.
     validate_action_declarations(parsed)
+    validate_public_log(store, parsed)
 
     return HouseState(
         origin=origin,
@@ -395,6 +425,9 @@ def restore(store, identity: HouseIdentity, state: HouseState, *,
         retired_logs.append(store.get_meta(_META_LOG_INCARNATION))
         new_server = new_incarnation("rmserver")
         new_log = new_incarnation("rmlog")
+        bindings = json.loads(store.get_meta(_META_LOG_BASELINES) or "{}")
+        bindings[new_log] = wire.ENVELOPE_BASELINE
+        store.set_meta(_META_LOG_BASELINES, json.dumps(bindings, sort_keys=True))
         manifest = _build_manifest(identity, new_log, digest_bytes(guide_bytes), guide_revision)
         if len(manifest) > wire.L_MANIFEST_MAX_BYTES:
             raise HouseStateError('rebuilt manifest exceeds the manifest size limit')

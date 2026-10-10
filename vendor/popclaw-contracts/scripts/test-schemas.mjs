@@ -6,9 +6,9 @@ const read = p => JSON.parse(fs.readFileSync(base+p,'utf8'));
 const profile=read('retained/schema-profile.schema.json');
 const ajv=new Ajv2020({strict:false,allErrors:true});
 ajv.addMetaSchema(profile);
-const board=read('public-envelope-01/board.schema.json');
+const board=read('public-envelope-02/board.schema.json');
 const validate=ajv.compile(board);
-const examples=read('public-envelope-01/examples.json');
+const examples=read('public-envelope-02/examples.json');
 assert(validate(examples.public_only),JSON.stringify(validate.errors));
 const absent=structuredClone(examples.public_only);delete absent.public_stream.envelope_baseline;
 assert.equal(validate(absent),false,'new receiver rejects missing baseline');
@@ -25,8 +25,8 @@ assert(block('actions')(examples.manual_action.actions));
 assert.equal(block('public_stream')(absent.public_stream),false);
 assert(block('actions')(examples.manual_action.actions),'unrelated valid action block remains independently valid');
 let count=0;
-for(const path of ['public-envelope-01/board.schema.json','public-envelope-01/action-kind.schema.json',
- 'public-envelope-01/interpreted-event-kind.schema.json','retained/participation.schema.json','retained/private-message.schema.json']) {
+for(const path of ['public-envelope-02/board.schema.json','public-envelope-02/action-kind.schema.json',
+ 'public-envelope-02/interpreted-event-kind.schema.json','retained/participation.schema.json','retained/private-message.schema.json']) {
   const schema=read(path);
   assert(ajv.validateSchema(schema),`${path}: ${JSON.stringify(ajv.errors)}`);
   ajv.compile(schema);count++;
@@ -42,7 +42,7 @@ function refs(value,root){
  }
  for(const child of Object.values(value))refs(child,root);
 }
-for(const path of ['public-envelope-01/board.schema.json','public-envelope-01/action-kind.schema.json',
- 'public-envelope-01/interpreted-event-kind.schema.json','retained/participation.schema.json',
+for(const path of ['public-envelope-02/board.schema.json','public-envelope-02/action-kind.schema.json',
+ 'public-envelope-02/interpreted-event-kind.schema.json','retained/participation.schema.json',
  'retained/private-message.schema.json','retained/schema-profile.schema.json']){const x=read(path);refs(x,x);}
 console.log(`Schema/negotiation tests passed; ${count} payload schemas compiled and 6 local reference closures checked`);

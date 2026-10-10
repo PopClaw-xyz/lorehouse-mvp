@@ -1,13 +1,13 @@
-# Public envelope baseline 01
+# Public envelope baseline 02
 
-Version: `0.1.0-public-envelope-01.7`. Baseline: `public-envelope-01`.
+Version: `0.1.0-public-envelope-02.0`. Baseline: `public-envelope-02`.
 This document defines normative changes to the earlier envelope coverage promise.
 It is not an assertion of compatibility with a wider historical body set.
 
 ## Declaration and supported bytes
 
 A receiver selects this baseline only from the exact, authenticated manifest body
-whose `world_interaction.public_stream.envelope_baseline` is `public-envelope-01`.
+whose `world_interaction.public_stream.envelope_baseline` is `public-envelope-02`.
 The discriminator is required by `board.schema.json` and participates in the
 manifest proof and capability revision. Missing/different values are unsupported.
 The outer board version remains 1; the transport remains `mode=public-v1`.
@@ -35,9 +35,14 @@ not parsed for product semantics, JSON or a narrower action-kind grammar. The
 baseline is structural, not content classification of arbitrary application data.
 
 Supported events keep exact original wire bytes, canonical signed bytes, CID and
-signature. Ordinary identity, signature, body-specific validity, public addressing
-and privacy checks remain mandatory in addition to structural validation. Ordinary
-DM and signed control messages are not made public by passing a structural check.
+signature. The new InviteVerificationMode accepts only 0 (legacy lookup) and 1
+(wait for a new post); InviteVerificationProgress accepts only 0 (unspecified), 1
+(preparing), 2 (ready), and 3 (recovering). Unknown enum numbers remain valid
+protobuf wire structure but fail public eligibility. Duplicate singular encodings
+of the added fields fail the original-wire guard. Ordinary identity, signature,
+body-specific validity, public addressing and privacy checks remain mandatory in
+addition to structural validation. Ordinary DM and signed control messages are not
+made public by passing a structural check.
 
 ## One immutable baseline per actual log
 
@@ -82,7 +87,7 @@ ingress, explicitly selected ordinary legacy path, legacy migration, cached disp
 and projection import/export boundary. Server claims or lossy decoders do not
 replace this guard. Stop an unsupported delivery without crossing its cursor or
 manufacturing success. A safe independently selected ordinary path may be usable
-without a new declaration, but cannot claim complete public-envelope-01 sync.
+without a new declaration, but cannot claim complete public-envelope-02 sync.
 Failure after new-mode selection never triggers automatic fallback.
 
 ## Bidirectional cutover and recovery

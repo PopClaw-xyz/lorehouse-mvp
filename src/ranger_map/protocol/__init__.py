@@ -1,8 +1,8 @@
-"""Fixed public contract adapter — BOUND to public-envelope-01.7.
+"""Fixed public contract adapter — BOUND to public-envelope-02.0.
 
 The native wire surface is implemented against the vendored trusted
 contract bundle (``vendor/popclaw-contracts``, pinned SHA-256
-``f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec``):
+``c530e69b51dcf8358b0e239b67d936dc9443ba7cad1f59b34b34520ad5e11337``):
 
 - ``GET /v1/manifest`` + ``X-Popclaw-Manifest-Proof`` — pinned manifest
   bytes with a fresh house-signed proof over
@@ -38,9 +38,9 @@ from ..check_in import TrustedCheckInContext
 
 ADAPTER_BOUND = True
 CONTRACT_BUNDLE_SHA256 = (
-    "f7993f282db354476efe2ef5bf9eb6fb07282934df2b5fc884465bb2cbd3fcec"
+    "c530e69b51dcf8358b0e239b67d936dc9443ba7cad1f59b34b34520ad5e11337"
 )
-CONTRACT_VERSION = "0.1.0-public-envelope-01.7"
+CONTRACT_VERSION = "0.1.0-public-envelope-02.0"
 
 __all__ = [
     "ADAPTER_BOUND",

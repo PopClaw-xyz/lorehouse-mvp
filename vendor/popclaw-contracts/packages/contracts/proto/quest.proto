@@ -1,6 +1,8 @@
 syntax = "proto3";
 package popclaw.quest;
 
+import "invite.proto";
+
 enum QuestKind {
   QUEST_KIND_UNSPECIFIED = 0;
   QUEST_KIND_VERIFY_INVITE = 1;
@@ -14,6 +16,14 @@ enum QuestOutcome {
   QUEST_OUTCOME_ABSTAIN = 3;
 }
 
+// Non-terminal readiness state, separate from QuestOutcome and quorum votes.
+enum InviteVerificationProgress {
+  INVITE_VERIFICATION_PROGRESS_UNSPECIFIED = 0;
+  INVITE_VERIFICATION_PROGRESS_PREPARING = 1;
+  INVITE_VERIFICATION_PROGRESS_READY = 2;
+  INVITE_VERIFICATION_PROGRESS_RECOVERING = 3;
+}
+
 // Kind-specific sub-payload for VERIFY_INVITE quests.
 message VerifyInvitePayload {
   string platform = 1;
@@ -23,6 +33,8 @@ message VerifyInvitePayload {
   // Forwarded proof_url: nonempty selects direct platform post lookup; empty selects
   // search discovery.
   string proof_url = 5;
+  // Forwarded from InviteRequest. Zero preserves the legacy lookup path.
+  popclaw.invite.InviteVerificationMode verification_mode = 6;
 }
 
 // Kind-specific sub-payload for SCRAPE_CONTENT quests.
@@ -63,4 +75,10 @@ message QuestResult {
   int64 follower_count = 7;
   string avatar_url = 8;
   string bio = 9;
+  // Progress reports require outcome=UNSPECIFIED, a positive revision, and no
+  // evidence/account/snapshot. They never record a verdict or completed work.
+  InviteVerificationProgress verification_progress = 10;
+  // Strictly increasing per task-assignee; stale reports cannot regress READY.
+  // The READY timestamp on the signed envelope starts a 60-second health lease.
+  uint64 progress_revision = 11;
 }

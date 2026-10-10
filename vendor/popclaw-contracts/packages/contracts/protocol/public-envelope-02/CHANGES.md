@@ -1,5 +1,37 @@
 # Compatibility changes
 
+## `0.1.0-public-envelope-02.0`
+
+This separately versioned candidate declares `envelope_baseline=public-envelope-02`.
+`verification_mode=WAIT_NEW_POST` arms verification before the applicant publishes;
+it is mutually exclusive with a nonempty `proof_url`. A cancellation request names
+the existing task, uses the same platform and handle, and does not create a task or
+replace an already verified account. Its receipt names the cancelled task and
+reports `CANCELLED`. Dispatch carries the selected verification mode. Nonterminal
+ranger progress uses `outcome=UNSPECIFIED`, has no evidence or verdict fields, and
+increments `progress_revision`; a `READY` envelope timestamp starts the 60-second
+health lease. These rules do not make a structural reader a business validator.
+The identifier changes so a reader that pins `public-envelope-01` cannot claim the
+expanded signed field set before it has the matching codecs and original-wire guard.
+
+The additive wire fields are `InviteRequest.verification_mode = 8`,
+`InviteRequest.cancel_task_id = 9`, `VerifyInvitePayload.verification_mode = 6`,
+`QuestResult.verification_progress = 10`, and `QuestResult.progress_revision = 11`.
+The zero enum values, empty string, and zero counter are proto3 defaults and are
+elided. Existing mode-zero invite bytes therefore keep their canonical CID and
+signature.
+
+Public body tags 11 (`InviteRequest`), 12 (`QuestDispatch`), and 13 (`QuestResult`)
+remain in the public lane. A conforming reader checks and preserves the complete
+original signed bytes. The new fields do not change public membership, reserved-field
+handling, private-message exclusion, or relation privacy. The shared signed-byte
+fixtures include the exact deterministic wait request used by the House test helper,
+plus cancellation, dispatch, and READY progress examples. Unknown enum values are
+structurally readable but fail public eligibility; duplicate singular fields fail
+structural validation in Rust, TypeScript, and Python.
+
+## Earlier public-envelope-01 revisions
+
 `0.1.0-public-envelope-01.7` publishes the existing named identity read contract
 and its existing synthetic golden vectors, which were missing from the sealed
 public source. It supersedes the adopted `.6` bundle

@@ -28,14 +28,17 @@ from ranger_map.house import load_or_setup
 from ranger_map.keys import load_or_create_identity
 from ranger_map.store import Store
 from ranger_map.streams import StreamHub
-from tests.interop.profile_http_loop import Mcp, require
+from tests.interop.profile_http_loop import Mcp, require, git
 from tests.interop.wire_helpers import Actor, make_profile, wrap_signed
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--bundle', type=Path, required=True)
-    parser.add_argument('--bundle-sha256', required=True)
+    lane = parser.add_mutually_exclusive_group(required=True)
+    lane.add_argument('--bundle', type=Path)
+    lane.add_argument('--client-root', type=Path)
+    parser.add_argument('--bundle-sha256')
+    parser.add_argument('--expected-client-sha')
     parser.add_argument('--node', required=True)
     parser.add_argument('--expected-reference-sha', required=True)
     parser.add_argument('--development-dirty', action='store_true')
@@ -44,8 +47,13 @@ def main():
     require(reference == args.expected_reference_sha, 'reference HEAD differs')
     dirty = bool(subprocess.check_output(['git','-C',str(ROOT),'status','--porcelain'],text=True).strip())
     require(not dirty or args.development_dirty, 'reference tree is not fixed')
-    digest = hashlib.sha256(args.bundle.read_bytes()).hexdigest()
-    require(digest == args.bundle_sha256, 'installed bundle differs')
+    digest = None
+    if args.bundle:
+        digest = hashlib.sha256(args.bundle.read_bytes()).hexdigest()
+        require(digest == args.bundle_sha256, 'installed bundle differs')
+    else:
+        require(git(args.client_root, 'rev-parse', 'HEAD') == args.expected_client_sha, 'client HEAD differs')
+        require(not git(args.client_root, 'status', '--porcelain'), 'client must be fixed')
     report = {'reference_sha':reference,'development_dirty':dirty,'bundle_sha256':digest,'commands':{}}
     with tempfile.TemporaryDirectory(prefix='reference-relations-mcp-') as t:
         temp=Path(t)
@@ -68,6 +76,13 @@ def main():
             with urllib.request.urlopen(urllib.request.Request(origin+'/v1/push',data=wrap_signed(raw,peer)),timeout=5) as r:
                 require(r.status==200, 'fixture Profile admission')
             data=temp/'client'; (data/'config/cadence').mkdir(parents=True); (temp/'home').mkdir()
+            if args.client_root:
+                pkg = args.client_root / 'apps/popclaw-plugin'
+                subprocess.run([args.node, '--import', str(pkg/'node_modules/tsx/dist/loader.mjs'),
+                    str(ROOT/'tests/interop/initialize_client_fixture.mjs'), str(args.client_root), str(data)],
+                    cwd=pkg, check=True, capture_output=True, text=True,
+                    env={'PATH':os.environ.get('PATH',''),'HOME':str(temp/'home'),'TMPDIR':str(temp),
+                         'LANG':'en_US.UTF-8','POPCLAW_DATA_ROOT':str(data)})
             (data/'config/plugin.json').write_text(json.dumps({'lore_houses':[origin]}))
             (data/'config/cadence/cadence.json').write_text(json.dumps({'schemaVersion':1,'delivery':{'primaryLanguage':'en'}}))
             attempts=temp/'non-loopback'
@@ -77,7 +92,9 @@ const loop=new Set(['127.0.0.1','localhost','::1']);const deny=h=>{appendFileSyn
 const c=net.Socket.prototype.connect;net.Socket.prototype.connect=function(...args){let a=Array.isArray(args[0])?args[0][0]:args[0];if((typeof a==='string'&&a.startsWith('/'))||typeof a?.path==='string')return c.apply(this,args);const h=typeof a==='object'?(a.host??'localhost'):(typeof args[1]==='string'?args[1]:'localhost');if(!loop.has(h))return deny(h);return c.apply(this,args);};
 const l=dns.lookup;dns.lookup=function(h,...a){if(!loop.has(h))return deny('dns:'+h);return l.call(this,h,...a);};
 """.replace('ATTEMPTS',json.dumps(str(attempts))))
-            process=subprocess.Popen([args.node,'--import',str(guard),str(args.bundle)],cwd=args.bundle.parent,
+            entry = ([args.node,'--import',str(guard),str(args.bundle)] if args.bundle else
+                     [args.node,'--import',str(guard),'--import','tsx',str(pkg/'src/mcp.ts')])
+            process=subprocess.Popen(entry,cwd=args.bundle.parent if args.bundle else pkg,
                                      stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=log,text=True,
                                      env={'PATH':os.environ.get('PATH',''),'HOME':str(temp/'home'),'TMPDIR':str(temp),
                                           'LANG':'en_US.UTF-8','POPCLAW_LANG':'en','POPCLAW_DATA_ROOT':str(data),
@@ -111,6 +128,7 @@ const l=dns.lookup;dns.lookup=function(h,...a){if(!loop.has(h))return deny('dns:
             report['relation_public_rows']=store.query_one('SELECT COUNT(*) n FROM public_log WHERE kind IN (\'follow_declared\',\'follow_revoked\')')['n']
             require(report['personal_delivery_rows']==4 and report['relation_public_rows']==0,'private delivery obligation mismatch')
             report['dm_sent']=False
+            if args.client_root: report['client_sha']=args.expected_client_sha
             print(json.dumps(report,indent=2))
         except BaseException:
             log.flush();log.seek(0);print(log.read()[-3000:],file=sys.stderr)
